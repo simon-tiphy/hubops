@@ -27,6 +27,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { clsx } from "clsx";
+import RecurringTasks from "../components/RecurringTasks";
 
 const GMDashboard = () => {
   const { token } = useAuth();
@@ -252,6 +253,9 @@ const GMDashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Recurring Maintenance Scheduler */}
+          <RecurringTasks />
         </div>
 
         {/* Right Column: Dept Oversight */}

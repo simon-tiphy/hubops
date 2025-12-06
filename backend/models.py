@@ -42,8 +42,11 @@ class Ticket(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     resolved_at = db.Column(db.DateTime, nullable=True)
     proof_url = db.Column(db.String(255), nullable=True)
+    assigned_staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    staff_status = db.Column(db.String(20), nullable=True) # 'Pending', 'Accepted', 'Rejected'
 
     department = db.relationship('Department', backref='tickets')
+    staff = db.relationship('User', foreign_keys=[assigned_staff_id], backref='assigned_tickets')
 
     def to_dict(self):
         return {
@@ -61,5 +64,30 @@ class Ticket(db.Model):
             'feedback_rating': self.feedback_rating,
             'created_at': self.created_at.isoformat(),
             'resolved_at': self.resolved_at.isoformat() if self.resolved_at else None,
-            'proof_url': self.proof_url
+            'proof_url': self.proof_url,
+            'assigned_staff_id': self.assigned_staff_id,
+            'assigned_staff_name': self.staff.username if self.staff else None,
+            'staff_status': self.staff_status
+        }
+
+class RecurringTask(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    frequency_days = db.Column(db.Integer, nullable=False)
+    next_run_date = db.Column(db.Date, nullable=False)
+    assigned_dept_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    department = db.relationship('Department', backref='recurring_tasks')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'frequency_days': self.frequency_days,
+            'next_run_date': self.next_run_date.isoformat(),
+            'assigned_dept_id': self.assigned_dept_id,
+            'assigned_dept': self.department.name if self.department else None
         }

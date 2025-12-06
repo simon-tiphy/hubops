@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import TenantDashboard from "./pages/TenantDashboard";
 import GMDashboard from "./pages/GMDashboard";
 import DeptDashboard from "./pages/DeptDashboard";
+import StaffDashboard from "./pages/StaffDashboard";
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -52,6 +53,15 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["dept"]}>
                 <DeptDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/staff"
+            element={
+              <ProtectedRoute allowedRoles={["staff"]}>
+                <StaffDashboard />
               </ProtectedRoute>
             }
           />

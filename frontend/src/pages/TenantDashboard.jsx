@@ -53,7 +53,7 @@ const TenantDashboard = () => {
       setShowForm(false);
       fetchTickets();
       setFormData({
-        type: "Plumbing",
+        type: "Maintenance",
         priority: "Low",
         description: "",
         anonymous: false,
@@ -118,10 +118,10 @@ const TenantDashboard = () => {
                       setFormData({ ...formData, type: e.target.value })
                     }
                   >
-                    <option>Plumbing</option>
-                    <option>Electrical</option>
+                    <option>Maintenance</option>
                     <option>Security</option>
-                    <option>HVAC</option>
+                    <option>Housekeeping</option>
+                    <option>IT</option>
                     <option>Other</option>
                   </select>
                 </div>

@@ -1,5 +1,5 @@
 from app import app, db
-from models import User, Department, Ticket
+from models import User, Department, Ticket, RecurringTask
 
 def seed_data():
     with app.app_context():
@@ -15,13 +15,26 @@ def seed_data():
         db.session.add_all([maintenance, security, housekeeping, it])
         db.session.commit()
 
+        depts = [maintenance, security, housekeeping, it]
+
         # Create Users
         tenant = User(username='Tenant User', role='tenant')
         gm = User(username='General Manager', role='gm')
-        maint_head = User(username='Maintenance Head', role='dept', department_id=maintenance.id)
-        sec_head = User(username='Security Head', role='dept', department_id=security.id)
         
-        db.session.add_all([tenant, gm, maint_head, sec_head])
+        db.session.add_all([tenant, gm])
+        db.session.commit()
+
+        # Create Dept Heads
+        dept_heads = []
+        for dept in depts:
+            head = User(username=f"{dept.name.lower()}_head", role='dept', department_id=dept.id)
+            db.session.add(head)
+            dept_heads.append(head)
+            
+            # Create Staff for each department
+            staff = User(username=f"{dept.name.lower()}_staff", role='staff', department_id=dept.id)
+            db.session.add(staff)
+
         db.session.commit()
 
         # Create Tickets
@@ -37,6 +50,14 @@ def seed_data():
         t5 = Ticket(tenant_name='Tenant User', type='IT', priority='Medium', description='WiFi down in food court', status='Resolved', assigned_dept_id=it.id, estimated_fix_time='1 hour', proof_url='http://example.com/proof.jpg', resolved_at=datetime.utcnow())
 
         db.session.add_all([t1, t2, t3, t4, t5])
+        db.session.commit()
+
+        # Create Recurring Tasks
+        from datetime import date, timedelta
+        rt1 = RecurringTask(title='Inspect Fire Extinguishers', description='Check all fire extinguishers in the mall', frequency_days=30, next_run_date=date.today(), assigned_dept_id=security.id)
+        rt2 = RecurringTask(title='Service Generator', description='Monthly generator service', frequency_days=30, next_run_date=date.today() + timedelta(days=5), assigned_dept_id=maintenance.id)
+        
+        db.session.add_all([rt1, rt2])
         db.session.commit()
         
         print("Database seeded successfully!")

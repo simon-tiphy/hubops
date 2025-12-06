@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify
 from flask_restful import Api, Resource
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
-from models import db, User, Ticket, Department
-from datetime import datetime
+from models import db, User, Ticket, Department, RecurringTask
+from datetime import datetime, timedelta
 import os
 import json
 
@@ -29,10 +29,17 @@ class Login(Resource):
         elif role == 'gm':
             user = User.query.filter_by(role='gm').first()
         elif role == 'dept':
-            dept_name = data.get('department', 'Maintenance')
+            dept_name = data.get('department')
             dept = Department.query.filter_by(name=dept_name).first()
             if dept:
                 user = User.query.filter_by(role='dept', department_id=dept.id).first()
+            else:
+                return {'message': 'Department not found'}, 404
+        elif role == 'staff':
+            dept_name = data.get('department')
+            dept = Department.query.filter_by(name=dept_name).first()
+            if dept:
+                user = User.query.filter_by(role='staff', department_id=dept.id).first()
             else:
                 return {'message': 'Department not found'}, 404
         else:
@@ -62,6 +69,12 @@ class TicketList(Resource):
             # Dept sees tickets assigned to their dept
             dept_id = current_user['dept_id']
             tickets = Ticket.query.filter_by(assigned_dept_id=dept_id).order_by(Ticket.created_at.desc()).all()
+        elif role == 'staff':
+            # Staff sees tickets assigned to them OR tickets for their department (optional, but good for visibility)
+            # For now, let's show tickets assigned to their department so they can see the pool if needed, 
+            # or just their assignments. The dashboard filters them anyway.
+            dept_id = current_user['dept_id']
+            tickets = Ticket.query.filter_by(assigned_dept_id=dept_id).order_by(Ticket.created_at.desc()).all()
         else:
             tickets = []
 
@@ -81,6 +94,15 @@ class TicketList(Resource):
             description=data.get('description'),
             status='Pending Approval'
         )
+        
+        # Assign Department based on Type
+        dept_name = data.get('type')
+        if dept_name:
+            dept = Department.query.filter_by(name=dept_name).first()
+            if dept:
+                new_ticket.assigned_dept_id = dept.id
+                new_ticket.status = 'Assigned' # Auto-assign to dept
+
         db.session.add(new_ticket)
         db.session.commit()
         return new_ticket.to_dict(), 201
@@ -116,11 +138,139 @@ class TicketAction(Resource):
             ticket.status = 'Resolved'
             ticket.resolved_at = datetime.utcnow()
         
+        elif action == 'assign_staff':
+            staff_id = data.get('staff_id')
+            ticket.assigned_staff_id = staff_id
+            ticket.staff_status = 'Pending'
+            
+        elif action == 'staff_accept':
+            ticket.staff_status = 'Accepted'
+            ticket.status = 'In Progress'
+            
+        elif action == 'staff_reject':
+            ticket.assigned_staff_id = None
+            ticket.staff_status = None
+        
         else:
             return {'message': 'Invalid action'}, 400
 
         db.session.commit()
         return ticket.to_dict(), 200
+
+class StaffList(Resource):
+    @jwt_required()
+    def get(self, dept_id):
+        staff_members = User.query.filter_by(role='staff', department_id=dept_id).all()
+        return [s.to_dict() for s in staff_members], 200
+
+# --- Recurring Task Resources ---
+class RecurringTaskList(Resource):
+    @jwt_required()
+    def get(self):
+        current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'gm':
+            return {'message': 'Unauthorized'}, 403
+        
+        tasks = RecurringTask.query.all()
+        return [t.to_dict() for t in tasks], 200
+
+    @jwt_required()
+    def post(self):
+        current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'gm':
+            return {'message': 'Unauthorized'}, 403
+        
+        data = request.get_json()
+        dept_name = data.get('department')
+        dept = Department.query.filter_by(name=dept_name).first()
+        
+        new_task = RecurringTask(
+            title=data.get('title'),
+            description=data.get('description'),
+            frequency_days=int(data.get('frequency_days')),
+            next_run_date=datetime.strptime(data.get('next_run_date'), '%Y-%m-%d').date(),
+            assigned_dept_id=dept.id if dept else None
+        )
+        db.session.add(new_task)
+        db.session.commit()
+        return new_task.to_dict(), 201
+
+class RecurringTaskItem(Resource):
+    @jwt_required()
+    def put(self, task_id):
+        current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'gm':
+            return {'message': 'Unauthorized'}, 403
+        
+        task = RecurringTask.query.get_or_404(task_id)
+        data = request.get_json()
+        
+        dept_name = data.get('department')
+        dept = Department.query.filter_by(name=dept_name).first()
+        
+        task.title = data.get('title', task.title)
+        task.description = data.get('description', task.description)
+        task.frequency_days = int(data.get('frequency_days', task.frequency_days))
+        if data.get('next_run_date'):
+            task.next_run_date = datetime.strptime(data.get('next_run_date'), '%Y-%m-%d').date()
+        if dept:
+            task.assigned_dept_id = dept.id
+            
+        db.session.commit()
+        return task.to_dict(), 200
+
+    @jwt_required()
+    def delete(self, task_id):
+        current_user = json.loads(get_jwt_identity())
+        if current_user['role'] != 'gm':
+            return {'message': 'Unauthorized'}, 403
+        
+        task = RecurringTask.query.get_or_404(task_id)
+        db.session.delete(task)
+        db.session.commit()
+        return {'message': 'Task deleted'}, 200
+
+class SchedulerCheck(Resource):
+    def post(self):
+        # In a real app, this would be secured or run by a cron job internally
+        # For this demo, we expose it so the frontend can trigger it
+        
+        today = datetime.utcnow().date()
+        due_tasks = RecurringTask.query.filter(RecurringTask.next_run_date <= today).all()
+        
+        created_tickets = []
+        
+        for task in due_tasks:
+            # Create Ticket
+            new_ticket = Ticket(
+                tenant_name='System Scheduler',
+                anonymous=False,
+                type='Maintenance', # Generic type for now
+                priority='Medium',
+                description=f"Recurring Task: {task.title}\n{task.description}",
+                status='Pending Approval', # Or directly 'Assigned' if we want
+                assigned_dept_id=task.assigned_dept_id
+            )
+            
+            # If we want to auto-assign, we can set status to 'Assigned'
+            if task.assigned_dept_id:
+                new_ticket.status = 'Assigned'
+            
+            db.session.add(new_ticket)
+            created_tickets.append(new_ticket)
+            
+            # Update Next Run Date
+            # If it was due days ago, should we set it to today + freq? 
+            # Or keep adding freq until it's in the future?
+            # For simplicity: next_run = next_run + freq
+            task.next_run_date = task.next_run_date + timedelta(days=task.frequency_days)
+            
+        db.session.commit()
+        
+        return {
+            'message': f'Processed {len(due_tasks)} due tasks',
+            'tickets_created': [t.id for t in created_tickets]
+        }, 200
 
 # --- Dashboard Stats (GM) ---
 class DashboardStats(Resource):
@@ -169,6 +319,10 @@ api.add_resource(Login, '/auth/login')
 api.add_resource(TicketList, '/tickets')
 api.add_resource(TicketAction, '/tickets/<int:ticket_id>/action')
 api.add_resource(DashboardStats, '/dashboard/stats')
+api.add_resource(RecurringTaskList, '/recurring-tasks')
+api.add_resource(RecurringTaskItem, '/recurring-tasks/<int:task_id>')
+api.add_resource(SchedulerCheck, '/scheduler/check')
+api.add_resource(StaffList, '/departments/<int:dept_id>/staff')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

@@ -3,21 +3,17 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import Layout from "../components/Layout";
 import { useToast } from "../context/ToastContext";
-import InputModal from "../components/InputModal";
 import {
   Clock,
   CheckCircle,
   Camera,
   Loader2,
-  Calendar,
   MapPin,
-  UserPlus,
-  Users,
   X,
+  Check,
 } from "lucide-react";
-import { clsx } from "clsx";
 
-const DeptDashboard = () => {
+const StaffDashboard = () => {
   const { user, token } = useAuth();
   const { showToast } = useToast();
   const [tickets, setTickets] = useState([]);
@@ -25,14 +21,8 @@ const DeptDashboard = () => {
   const [resolvingId, setResolvingId] = useState(null);
   const [proofUrl, setProofUrl] = useState("");
 
-  // Modals state
-  const [estimateTicketId, setEstimateTicketId] = useState(null);
-  const [assignTicketId, setAssignTicketId] = useState(null);
-  const [staffList, setStaffList] = useState([]);
-
   useEffect(() => {
     fetchTickets();
-    fetchStaff();
   }, []);
 
   const fetchTickets = async () => {
@@ -48,53 +38,21 @@ const DeptDashboard = () => {
     }
   };
 
-  const fetchStaff = async () => {
-    if (!user?.department_id) return;
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/departments/${user.department_id}/staff`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setStaffList(res.data);
-    } catch (err) {
-      console.error("Error fetching staff:", err);
-    }
-  };
-
-  const handleAccept = async (time) => {
-    if (!estimateTicketId) return;
-
+  const handleAction = async (ticketId, action) => {
     try {
       await axios.put(
-        `http://localhost:5000/tickets/${estimateTicketId}/action`,
-        { action: "accept", estimated_fix_time: time },
+        `http://localhost:5000/tickets/${ticketId}/action`,
+        { action: action },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchTickets();
-      showToast("Job accepted successfully", "success");
-      setEstimateTicketId(null);
-    } catch (err) {
-      console.error(err);
-      showToast("Error accepting job", "error");
-    }
-  };
-
-  const handleAssignStaff = async (staffId) => {
-    if (!assignTicketId) return;
-    try {
-      await axios.put(
-        `http://localhost:5000/tickets/${assignTicketId}/action`,
-        { action: "assign_staff", staff_id: staffId },
-        { headers: { Authorization: `Bearer ${token}` } }
+      showToast(
+        action === "staff_accept" ? "Job accepted" : "Job rejected",
+        "success"
       );
-      fetchTickets();
-      showToast("Staff assigned successfully", "success");
-      setAssignTicketId(null);
     } catch (err) {
       console.error(err);
-      showToast("Error assigning staff", "error");
+      showToast("Error processing request", "error");
     }
   };
 
@@ -120,8 +78,16 @@ const DeptDashboard = () => {
     }
   };
 
-  const assignedTickets = tickets.filter((t) => t.status === "Assigned");
-  const inProgressTickets = tickets.filter((t) => t.status === "In Progress");
+  // Filter tickets for this staff member
+  const myPendingTickets = tickets.filter(
+    (t) => t.assigned_staff_id === user.id && t.staff_status === "Pending"
+  );
+  const myActiveTickets = tickets.filter(
+    (t) =>
+      t.assigned_staff_id === user.id &&
+      t.staff_status === "Accepted" &&
+      t.status !== "Resolved"
+  );
 
   if (loading)
     return (
@@ -131,28 +97,25 @@ const DeptDashboard = () => {
     );
 
   return (
-    <Layout
-      title={`${user?.role === "dept" ? "Maintenance" : "Department"} Tasks`}
-      role="Head of Dept"
-    >
+    <Layout title="My Assignments" role="Staff Member">
       <div className="grid md:grid-cols-2 gap-8">
-        {/* New Assignments Column */}
+        {/* Pending Invites Column */}
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
             <h2 className="text-lg font-semibold text-white">
-              New Assignments
+              Pending Invites
             </h2>
             <span className="bg-blue-500/10 text-blue-400 text-xs font-bold px-2 py-1 rounded-md border border-blue-500/20">
-              {assignedTickets.length}
+              {myPendingTickets.length}
             </span>
           </div>
 
-          {assignedTickets.length === 0 ? (
+          {myPendingTickets.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
-              <p className="text-zinc-500 text-sm">No new jobs assigned.</p>
+              <p className="text-zinc-500 text-sm">No pending invites.</p>
             </div>
           ) : (
-            assignedTickets.map((ticket) => (
+            myPendingTickets.map((ticket) => (
               <div
                 key={ticket.id}
                 className="glass-card p-6 border-l-4 border-l-blue-500 animate-fade-in-up"
@@ -160,7 +123,7 @@ const DeptDashboard = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-1 block">
-                      New Job
+                      New Assignment
                     </span>
                     <h3 className="text-lg font-bold text-white">
                       {ticket.type}
@@ -184,63 +147,41 @@ const DeptDashboard = () => {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setAssignTicketId(ticket.id)}
-                      className="glass-button px-3 py-2 text-xs flex items-center gap-2"
-                      title="Assign to Staff"
+                      onClick={() => handleAction(ticket.id, "staff_reject")}
+                      className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                      title="Reject"
                     >
-                      <UserPlus size={14} />
-                      Assign
+                      <X size={16} />
                     </button>
                     <button
-                      onClick={() => setEstimateTicketId(ticket.id)}
-                      className="btn-primary text-xs py-2 px-4"
+                      onClick={() => handleAction(ticket.id, "staff_accept")}
+                      className="btn-primary text-sm py-2 px-4 flex items-center gap-2"
                     >
-                      Accept Job
+                      <Check size={16} />
+                      Accept
                     </button>
                   </div>
                 </div>
-                {ticket.assigned_staff_id && (
-                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                    <span className="text-zinc-500">
-                      Assigned to:{" "}
-                      <span className="text-white font-medium">
-                        {ticket.assigned_staff_name}
-                      </span>
-                    </span>
-                    <span
-                      className={clsx(
-                        "px-2 py-0.5 rounded-full font-medium",
-                        ticket.staff_status === "Accepted"
-                          ? "bg-emerald-500/10 text-emerald-400"
-                          : ticket.staff_status === "Rejected"
-                          ? "bg-red-500/10 text-red-400"
-                          : "bg-amber-500/10 text-amber-400"
-                      )}
-                    >
-                      {ticket.staff_status || "Pending"}
-                    </span>
-                  </div>
-                )}
               </div>
             ))
           )}
         </div>
 
-        {/* In Progress Column */}
+        {/* Active Jobs Column */}
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
-            <h2 className="text-lg font-semibold text-white">In Progress</h2>
+            <h2 className="text-lg font-semibold text-white">My Active Jobs</h2>
             <span className="bg-orange-500/10 text-orange-400 text-xs font-bold px-2 py-1 rounded-md border border-orange-500/20">
-              {inProgressTickets.length}
+              {myActiveTickets.length}
             </span>
           </div>
 
-          {inProgressTickets.length === 0 ? (
+          {myActiveTickets.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
               <p className="text-zinc-500 text-sm">No active jobs.</p>
             </div>
           ) : (
-            inProgressTickets.map((ticket) => (
+            myActiveTickets.map((ticket) => (
               <div
                 key={ticket.id}
                 className="glass-card p-6 border-l-4 border-l-orange-500 animate-fade-in-up"
@@ -248,7 +189,7 @@ const DeptDashboard = () => {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider mb-1 block">
-                      Active
+                      In Progress
                     </span>
                     <h3 className="text-lg font-bold text-white">
                       {ticket.type}
@@ -295,75 +236,13 @@ const DeptDashboard = () => {
                     Mark Resolved
                   </button>
                 )}
-
-                {ticket.assigned_staff_id && (
-                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                    <span className="text-zinc-500">
-                      Assigned to:{" "}
-                      <span className="text-white font-medium">
-                        {ticket.assigned_staff_name}
-                      </span>
-                    </span>
-                    <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-medium">
-                      Accepted
-                    </span>
-                  </div>
-                )}
               </div>
             ))
           )}
         </div>
       </div>
-
-      {/* Estimate Modal */}
-      <InputModal
-        isOpen={!!estimateTicketId}
-        onClose={() => setEstimateTicketId(null)}
-        onSubmit={handleAccept}
-        title="Accept Job"
-        message="Please provide an estimated time to fix this issue."
-        placeholder="e.g., 2 hours, 1 day"
-        confirmText="Accept Job"
-      />
-
-      {/* Assign Staff Modal */}
-      {assignTicketId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface-highlight border border-white/10 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold text-white">Assign Staff</h3>
-              <button
-                onClick={() => setAssignTicketId(null)}
-                className="text-zinc-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {staffList.length === 0 ? (
-                <p className="text-zinc-500 text-center py-4">
-                  No staff members found.
-                </p>
-              ) : (
-                staffList.map((staff) => (
-                  <button
-                    key={staff.id}
-                    onClick={() => handleAssignStaff(staff.id)}
-                    className="w-full p-3 flex items-center gap-3 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white transition-colors border border-white/5"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                      <Users size={16} />
-                    </div>
-                    <span className="font-medium">{staff.username}</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </Layout>
   );
 };
 
-export default DeptDashboard;
+export default StaffDashboard;

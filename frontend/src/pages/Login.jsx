@@ -1,19 +1,35 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Building2, UserCog, Wrench, ArrowRight } from "lucide-react";
+import { Building2, UserCog, Wrench, ArrowRight, Users, X } from "lucide-react";
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [showDeptModal, setShowDeptModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null); // 'dept' or 'staff'
 
   const handleLogin = async (role, dept = null) => {
+    if (role === "dept" || role === "staff") {
+      setSelectedRole(role);
+      setShowDeptModal(true);
+      return;
+    }
+
     const success = await login(role, dept);
     if (success) {
       if (role === "tenant") navigate("/tenant");
       else if (role === "gm") navigate("/gm");
-      else if (role === "dept") navigate("/dept");
     }
+  };
+
+  const handleDeptSelect = async (dept) => {
+    const success = await login(selectedRole, dept);
+    if (success) {
+      if (selectedRole === "dept") navigate("/dept");
+      else if (selectedRole === "staff") navigate("/staff");
+    }
+    setShowDeptModal(false);
   };
 
   return (
@@ -58,9 +74,18 @@ const Login = () => {
             icon={<Wrench className="w-5 h-5" />}
             title="Department Head"
             desc="Task management & resolution"
-            onClick={() => handleLogin("dept", "Maintenance")}
+            onClick={() => handleLogin("dept")}
             color="text-orange-400"
             bg="bg-orange-500/10"
+          />
+
+          <RoleButton
+            icon={<Users className="w-5 h-5" />}
+            title="Staff Member"
+            desc="View assignments & tasks"
+            onClick={() => handleLogin("staff")}
+            color="text-emerald-400"
+            bg="bg-emerald-500/10"
           />
         </div>
 
@@ -70,6 +95,36 @@ const Login = () => {
           </p>
         </div>
       </div>
+
+      {/* Department Selection Modal */}
+      {showDeptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface-highlight border border-white/10 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-white">
+                Select Department
+              </h3>
+              <button
+                onClick={() => setShowDeptModal(false)}
+                className="text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {["Maintenance", "Security", "Housekeeping", "IT"].map((dept) => (
+                <button
+                  key={dept}
+                  onClick={() => handleDeptSelect(dept)}
+                  className="w-full p-3 text-left rounded-xl bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white transition-colors border border-white/5"
+                >
+                  {dept}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
