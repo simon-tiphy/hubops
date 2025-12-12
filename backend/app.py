@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_restful import Api, Resource
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
@@ -7,15 +7,38 @@ from datetime import datetime, timedelta
 import os
 import json
 
+from werkzeug.utils import secure_filename
+import time
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hubops.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'super-secret-key'  # Change this in production
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db.init_app(app)
 api = Api(app)
 jwt = JWTManager(app)
 CORS(app)
+
+# --- Uploads & Static ---
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+class UploadFile(Resource):
+    def post(self):
+        if 'file' not in request.files:
+            return {'message': 'No file part'}, 400
+        file = request.files['file']
+        if file.filename == '':
+            return {'message': 'No selected file'}, 400
+        if file:
+            filename = secure_filename(file.filename)
+            unique_filename = f"{int(time.time())}_{filename}"
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            return {'url': f"http://localhost:5000/uploads/{unique_filename}"}, 201
 
 # --- Auth Resources ---
 class Login(Resource):
@@ -323,6 +346,7 @@ api.add_resource(RecurringTaskList, '/recurring-tasks')
 api.add_resource(RecurringTaskItem, '/recurring-tasks/<int:task_id>')
 api.add_resource(SchedulerCheck, '/scheduler/check')
 api.add_resource(StaffList, '/departments/<int:dept_id>/staff')
+api.add_resource(UploadFile, '/upload')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

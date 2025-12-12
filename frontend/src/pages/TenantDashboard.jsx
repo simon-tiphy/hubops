@@ -10,6 +10,9 @@ import {
   AlertCircle,
   Loader2,
   ArrowUpRight,
+  X,
+  FileText,
+  Video,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -18,6 +21,10 @@ const TenantDashboard = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     type: "Plumbing",
@@ -64,6 +71,34 @@ const TenantDashboard = () => {
     }
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    setUploading(true);
+    try {
+      const res = await axios.post("http://localhost:5000/upload", uploadData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setFormData({ ...formData, photo_url: res.data.url });
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const filteredTickets = tickets.filter(
+    (ticket) =>
+      ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const getStatusStyle = (status) => {
     switch (status) {
       case "Pending Approval":
@@ -80,7 +115,13 @@ const TenantDashboard = () => {
   };
 
   return (
-    <Layout title="Tenant Portal" role="Tenant">
+    <Layout
+      title="Tenant Portal"
+      role="Tenant"
+      onSearch={setSearchQuery}
+      onNotification={() => setShowNotifications(true)}
+      onSettings={() => setShowSettings(true)}
+    >
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Column: Quick Actions */}
         <div className="lg:col-span-1 space-y-6">
@@ -165,13 +206,39 @@ const TenantDashboard = () => {
                   />
                 </div>
 
-                <div className="border border-dashed border-zinc-700 rounded-xl p-6 text-center hover:border-primary/50 hover:bg-surface/50 transition-all cursor-pointer group">
-                  <div className="w-10 h-10 rounded-full bg-surface border border-white/5 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                    <Upload className="h-5 w-5 text-zinc-400 group-hover:text-primary" />
-                  </div>
-                  <p className="text-xs text-zinc-500">
-                    Click or drop to upload photo
-                  </p>
+                <div
+                  onClick={() => document.getElementById("file-upload").click()}
+                  className="border border-dashed border-zinc-700 rounded-xl p-6 text-center hover:border-primary/50 hover:bg-surface/50 transition-all cursor-pointer group relative"
+                >
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  {uploading ? (
+                    <Loader2 className="animate-spin h-6 w-6 text-primary mx-auto" />
+                  ) : formData.photo_url ? (
+                    <div className="relative">
+                      <img
+                        src={formData.photo_url}
+                        alt="Preview"
+                        className="h-20 mx-auto rounded-lg object-cover"
+                      />
+                      <p className="text-xs text-green-400 mt-2">
+                        File Uploaded!
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-surface border border-white/5 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                        <Upload className="h-5 w-5 text-zinc-400 group-hover:text-primary" />
+                      </div>
+                      <p className="text-xs text-zinc-500">
+                        Click to upload photo, video or file
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-surface/30 border border-white/5">
@@ -217,7 +284,7 @@ const TenantDashboard = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {tickets.map((ticket, idx) => (
+              {filteredTickets.map((ticket, idx) => (
                 <div
                   key={ticket.id}
                   className="glass-card p-5 flex flex-col md:flex-row gap-5 items-start md:items-center group animate-fade-in"
@@ -272,6 +339,74 @@ const TenantDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in">
+            <button
+              onClick={() => setShowNotifications(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-semibold text-white mb-4">
+              Notifications
+            </h3>
+            <div className="space-y-3">
+              <div className="p-3 bg-surface/50 rounded-xl border border-white/5">
+                <p className="text-sm text-zinc-300">
+                  Ticket #1234 status updated to{" "}
+                  <span className="text-primary font-bold">In Progress</span>
+                </p>
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  2 mins ago
+                </span>
+              </div>
+              <div className="p-3 bg-surface/50 rounded-xl border border-white/5">
+                <p className="text-sm text-zinc-300">
+                  New maintenance schedule available.
+                </p>
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  1 hour ago
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in">
+            <button
+              onClick={() => setShowSettings(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-semibold text-white mb-4">Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-surface/30 rounded-xl">
+                <span className="text-zinc-300 text-sm">Dark Mode</span>
+                <div className="w-10 h-5 bg-primary rounded-full relative">
+                  <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-surface/30 rounded-xl">
+                <span className="text-zinc-300 text-sm">
+                  Email Notifications
+                </span>
+                <div className="w-10 h-5 bg-primary rounded-full relative">
+                  <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div>
+                </div>
+              </div>
+              <button className="w-full btn-primary mt-2">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

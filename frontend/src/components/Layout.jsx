@@ -15,11 +15,30 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 
-const Layout = ({ children, title, role }) => {
+const Layout = ({
+  children,
+  title,
+  role,
+  onSearch,
+  onNotification,
+  onSettings,
+}) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -31,8 +50,10 @@ const Layout = ({ children, title, role }) => {
       {/* Sidebar */}
       <aside
         className={clsx(
-          "relative z-50 h-full bg-[#161e33]/90 backdrop-blur-xl border-r border-white/5 transition-all duration-300 ease-in-out flex flex-col",
-          isSidebarOpen ? "w-64" : "w-20"
+          "fixed inset-y-0 left-0 z-50 bg-[#161e33]/90 backdrop-blur-xl border-r border-white/5 transition-all duration-300 ease-in-out flex flex-col lg:relative",
+          isSidebarOpen
+            ? "w-64 translate-x-0"
+            : "-translate-x-full lg:translate-x-0 lg:w-20"
         )}
       >
         {/* Logo Area */}
@@ -63,11 +84,13 @@ const Layout = ({ children, title, role }) => {
             label="Notifications"
             badge="3"
             collapsed={!isSidebarOpen}
+            onClick={onNotification}
           />
           <NavItem
             icon={<Settings size={20} />}
             label="Settings"
             collapsed={!isSidebarOpen}
+            onClick={onSettings}
           />
         </nav>
 
@@ -134,6 +157,12 @@ const Layout = ({ children, title, role }) => {
         {/* Top Navbar */}
         <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-[#0F1526]/80 backdrop-blur-md sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden text-white p-1"
+            >
+              <Menu size={24} />
+            </button>
             <h1 className="text-xl font-semibold text-white tracking-tight">
               {title}
             </h1>
@@ -145,10 +174,14 @@ const Layout = ({ children, title, role }) => {
               <input
                 type="text"
                 placeholder="Search..."
+                onChange={(e) => onSearch && onSearch(e.target.value)}
                 className="bg-[#161e33] border border-white/5 rounded-full pl-10 pr-4 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary/50 w-64 transition-all placeholder-gray-600"
               />
             </div>
-            <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
+            <button
+              onClick={onNotification}
+              className="relative p-2 text-gray-400 hover:text-white transition-colors"
+            >
               <Bell size={20} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full shadow-glow"></span>
             </button>
@@ -166,8 +199,9 @@ const Layout = ({ children, title, role }) => {
   );
 };
 
-const NavItem = ({ icon, label, active, badge, collapsed }) => (
+const NavItem = ({ icon, label, active, badge, collapsed, onClick }) => (
   <button
+    onClick={onClick}
     className={clsx(
       "w-full flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative",
       active
