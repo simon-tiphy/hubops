@@ -118,13 +118,14 @@ class TicketList(Resource):
             status='Pending Approval'
         )
         
-        # Assign Department based on Type
-        dept_name = data.get('type')
-        if dept_name:
-            dept = Department.query.filter_by(name=dept_name).first()
-            if dept:
-                new_ticket.assigned_dept_id = dept.id
-                new_ticket.status = 'Assigned' # Auto-assign to dept
+        
+        # Auto-assignment removed to enforce GM approval
+        # dept_name = data.get('type')
+        # if dept_name:
+        #     dept = Department.query.filter_by(name=dept_name).first()
+        #     if dept:
+        #         new_ticket.assigned_dept_id = dept.id
+        #         new_ticket.status = 'Assigned' # Auto-assign to dept
 
         db.session.add(new_ticket)
         db.session.commit()
