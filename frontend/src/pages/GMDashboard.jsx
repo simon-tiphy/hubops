@@ -25,6 +25,10 @@ import {
   Loader2,
   ArrowUpRight,
   MoreHorizontal,
+  X,
+  Clock,
+  Video,
+  FileText,
 } from "lucide-react";
 import { clsx } from "clsx";
 import RecurringTasks from "../components/RecurringTasks";
@@ -34,6 +38,11 @@ const GMDashboard = () => {
   const [tickets, setTickets] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All"); // All, Pending, Active, Resolved, Rejected
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -74,6 +83,37 @@ const GMDashboard = () => {
   const pendingTickets = tickets.filter((t) => t.status === "Pending Approval");
   const COLORS = ["#10b981", "#64748b", "#ef4444"];
 
+  const filteredTickets = tickets.filter((t) => {
+    const matchesSearch =
+      t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.type.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (filterStatus === "Pending") return t.status === "Pending Approval";
+    if (filterStatus === "Active")
+      return t.status === "In Progress" || t.status === "Assigned";
+    if (filterStatus === "Resolved") return t.status === "Resolved";
+    if (filterStatus === "Rejected") return t.status === "Rejected";
+    return true;
+  });
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Pending Approval":
+        return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+      case "Assigned":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      case "In Progress":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+      case "Resolved":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "Rejected":
+        return "bg-red-500/10 text-red-400 border-red-500/20";
+      default:
+        return "bg-zinc-500/10 text-zinc-400";
+    }
+  };
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -82,7 +122,13 @@ const GMDashboard = () => {
     );
 
   return (
-    <Layout title="Operations Control" role="General Manager">
+    <Layout
+      title="Operations Control"
+      role="General Manager"
+      onSearch={setSearchQuery}
+      onNotification={() => setShowNotifications(true)}
+      onSettings={() => setShowSettings(true)}
+    >
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <KPICard
@@ -90,24 +136,36 @@ const GMDashboard = () => {
           value={pendingTickets.length}
           change="+2"
           color="text-white"
+          onClick={() => setFilterStatus("Pending")}
+          active={filterStatus === "Pending"}
         />
         <KPICard
           title="Active Issues"
-          value={tickets.filter((t) => t.status === "In Progress").length}
+          value={
+            tickets.filter(
+              (t) => t.status === "In Progress" || t.status === "Assigned"
+            ).length
+          }
           change="+5"
           color="text-orange-400"
+          onClick={() => setFilterStatus("Active")}
+          active={filterStatus === "Active"}
         />
         <KPICard
           title="Resolved Today"
           value={tickets.filter((t) => t.status === "Resolved").length}
           change="+12"
           color="text-emerald-400"
+          onClick={() => setFilterStatus("Resolved")}
+          active={filterStatus === "Resolved"}
         />
         <KPICard
           title="Avg Fix Time"
           value="3.2h"
           change="-15%"
           color="text-blue-400"
+          onClick={() => setFilterStatus("All")}
+          active={filterStatus === "All"}
         />
       </div>
 
@@ -118,57 +176,116 @@ const GMDashboard = () => {
           <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                Triage Queue
+                {filterStatus === "All" ? (
+                  <Activity className="text-primary" size={20} />
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                )}
+                {filterStatus === "All"
+                  ? "All Issues"
+                  : `${filterStatus} Queue`}
               </h3>
               <span className="text-xs font-medium text-zinc-500 bg-surface px-2 py-1 rounded-md border border-white/5">
-                {pendingTickets.length} Pending
+                {filteredTickets.length} Tickets
               </span>
             </div>
 
-            <div className="space-y-3">
-              {pendingTickets.length === 0 ? (
+            <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+              {filteredTickets.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500">
                   <CheckSquare className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                  <p>All caught up!</p>
+                  <p>No tickets found</p>
                 </div>
               ) : (
-                pendingTickets.map((ticket) => (
+                filteredTickets.map((ticket) => (
                   <div
                     key={ticket.id}
-                    className="group bg-surface/30 hover:bg-surface/60 border border-white/5 p-4 rounded-xl transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                    className="group bg-surface/30 hover:bg-surface/60 border border-white/5 p-4 rounded-xl transition-all flex flex-col gap-4 animate-fade-in"
                   >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-zinc-200">
-                          {ticket.type}
-                        </span>
-                        {ticket.priority === "Urgent" && (
-                          <span className="text-[10px] font-bold bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20">
-                            URGENT
-                          </span>
+                    <div className="flex items-start gap-4">
+                      {/* Image Preview */}
+                      <div className="w-16 h-16 bg-surface-highlight rounded-lg border border-white/5 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+                        {ticket.photo_url ? (
+                          <img
+                            src={ticket.photo_url}
+                            alt="Proof"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <AlertTriangle className="text-zinc-600" />
                         )}
                       </div>
-                      <p className="text-sm text-zinc-400">
-                        {ticket.description}
-                      </p>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="font-semibold text-zinc-200 group-hover:text-white transition-colors">
+                            {ticket.type}
+                          </h4>
+                          <span
+                            className={clsx(
+                              "px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border",
+                              getStatusColor(ticket.status)
+                            )}
+                          >
+                            {ticket.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-zinc-400 mb-2 line-clamp-2">
+                          {ticket.description}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-zinc-500">
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} />{" "}
+                            {new Date(ticket.created_at).toLocaleDateString()}
+                          </span>
+                          <span>ID: #{ticket.id}</span>
+                          {ticket.priority === "Urgent" && (
+                            <span className="text-red-400 font-bold">
+                              URGENT
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                      <select
-                        className="bg-surface border border-white/10 text-sm rounded-lg px-3 py-2 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-primary/50 w-full sm:w-40 transition-all hover:border-white/20 cursor-pointer"
-                        onChange={(e) =>
-                          handleAssign(ticket.id, e.target.value)
-                        }
-                        defaultValue=""
+
+                    {/* Action Bar */}
+                    <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Users size={14} className="text-zinc-500" />
+                        <span className="text-xs text-zinc-400">
+                          Assigned to:
+                        </span>
+                        <select
+                          className="bg-transparent border-none text-xs font-medium text-primary focus:ring-0 p-0 cursor-pointer"
+                          value={
+                            ticket.assigned_dept_id
+                              ? [
+                                  "Maintenance",
+                                  "Security",
+                                  "Housekeeping",
+                                  "IT",
+                                ][ticket.assigned_dept_id - 1] // Hacky mapping for demo
+                              : ""
+                          }
+                          onChange={(e) =>
+                            handleAssign(ticket.id, e.target.value)
+                          }
+                        >
+                          <option value="" disabled>
+                            Select Dept
+                          </option>
+                          <option value="Maintenance">Maintenance</option>
+                          <option value="Security">Security</option>
+                          <option value="Housekeeping">Housekeeping</option>
+                          <option value="IT">IT</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={() => setSelectedTicket(ticket)}
+                        className="text-xs text-zinc-400 hover:text-white transition-colors"
                       >
-                        <option value="" disabled>
-                          Assign To...
-                        </option>
-                        <option value="Maintenance">Maintenance</option>
-                        <option value="Security">Security</option>
-                        <option value="Housekeeping">Housekeeping</option>
-                        <option value="IT">IT</option>
-                      </select>
+                        View Details
+                      </button>
                     </div>
                   </div>
                 ))
@@ -265,7 +382,7 @@ const GMDashboard = () => {
               Department Load
             </h3>
             <div className="space-y-6">
-              {stats?.dept_load.map((dept, idx) => (
+              {stats?.dept_load?.map((dept, idx) => (
                 <div key={idx}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm text-zinc-300 font-medium">
@@ -305,7 +422,7 @@ const GMDashboard = () => {
                     dataKey="value"
                     stroke="none"
                   >
-                    {stats?.satisfaction.map((entry, index) => (
+                    {stats?.satisfaction?.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -325,14 +442,101 @@ const GMDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in">
+            <button
+              onClick={() => setShowNotifications(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-semibold text-white mb-4">
+              Notifications
+            </h3>
+            <div className="space-y-3">
+              <div className="p-3 bg-surface/50 rounded-xl border border-white/5">
+                <p className="text-sm text-zinc-300">
+                  New ticket{" "}
+                  <span className="text-primary font-bold">#1024</span> reported
+                  by Tenant A.
+                </p>
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  5 mins ago
+                </span>
+              </div>
+              <div className="p-3 bg-surface/50 rounded-xl border border-white/5">
+                <p className="text-sm text-zinc-300">
+                  Daily maintenance report is ready.
+                </p>
+                <span className="text-[10px] text-zinc-500 mt-1 block">
+                  1 hour ago
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-md p-6 relative animate-scale-in">
+            <button
+              onClick={() => setShowSettings(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-xl font-semibold text-white mb-4">Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-surface/30 rounded-xl">
+                <span className="text-zinc-300 text-sm">System Status</span>
+                <span className="text-emerald-400 text-xs font-bold">
+                  OPERATIONAL
+                </span>
+              </div>
+              <button className="w-full btn-primary mt-2">
+                Save Configuration
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Details Modal */}
+      {selectedTicket && (
+        <TicketDetailsModal
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+          getStatusColor={getStatusColor}
+        />
+      )}
     </Layout>
   );
 };
 
-const KPICard = ({ title, value, change, color }) => (
-  <div className="glass-card p-5">
+const KPICard = ({ title, value, change, color, onClick, active }) => (
+  <div
+    onClick={onClick}
+    className={clsx(
+      "glass-card p-5 cursor-pointer transition-all hover:scale-[1.02]",
+      active
+        ? "border-primary/50 bg-primary/5 shadow-glow"
+        : "hover:border-white/10"
+    )}
+  >
     <div className="flex justify-between items-start mb-4">
-      <p className="text-sm font-medium text-zinc-400">{title}</p>
+      <p
+        className={clsx(
+          "text-sm font-medium",
+          active ? "text-white" : "text-zinc-400"
+        )}
+      >
+        {title}
+      </p>
       <MoreHorizontal size={16} className="text-zinc-600" />
     </div>
     <div className="flex items-end gap-3">
@@ -348,5 +552,104 @@ const KPICard = ({ title, value, change, color }) => (
     </div>
   </div>
 );
+
+const TicketDetailsModal = ({ ticket, onClose, getStatusColor }) => {
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-2xl p-0 relative animate-scale-in overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#0F1526]">
+          <div>
+            <h2 className="text-xl font-semibold text-white flex items-center gap-3">
+              Issue Details{" "}
+              <span className="text-zinc-500 text-base font-normal">
+                #{ticket.id}
+              </span>
+            </h2>
+            <span className="text-xs text-zinc-400">
+              Created on {new Date(ticket.created_at).toLocaleString()}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-white transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+          <div className="flex flex-wrap gap-2 mb-2">
+            <span
+              className={clsx(
+                "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border",
+                getStatusColor(ticket.status)
+              )}
+            >
+              {ticket.status}
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-300 border-zinc-700">
+              {ticket.priority} Priority
+            </span>
+            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-zinc-800 text-zinc-300 border-zinc-700">
+              {ticket.type}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
+              Description
+            </h3>
+            <div className="p-4 bg-surface/50 rounded-xl border border-white/5 text-zinc-300 whitespace-pre-wrap">
+              {ticket.description}
+            </div>
+          </div>
+
+          {ticket.photo_url && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
+                Attached Media
+              </h3>
+              <div className="rounded-xl overflow-hidden border border-white/10 bg-black">
+                <img
+                  src={ticket.photo_url}
+                  alt="Attachment"
+                  className="w-full h-auto max-h-[400px] object-contain"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-surface/30 rounded-xl border border-white/5">
+              <span className="text-xs text-zinc-500 block mb-1">Tenant</span>
+              <p className="text-white font-medium">{ticket.tenant_name}</p>
+            </div>
+            <div className="p-4 bg-surface/30 rounded-xl border border-white/5">
+              <span className="text-xs text-zinc-500 block mb-1">
+                Assigned Department
+              </span>
+              <p className="text-white font-medium">
+                {ticket.assigned_dept_id
+                  ? ["Maintenance", "Security", "Housekeeping", "IT"][
+                      ticket.assigned_dept_id - 1
+                    ]
+                  : "Unassigned"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-white/5 bg-[#0F1526]/50 flex justify-end">
+          <button onClick={onClose} className="btn-primary">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default GMDashboard;

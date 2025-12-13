@@ -174,6 +174,15 @@ class TicketAction(Resource):
             ticket.assigned_staff_id = None
             ticket.staff_status = None
         
+        elif action == 'dept_reject':
+            if current_user['role'] != 'dept':
+                return {'message': 'Unauthorized'}, 403
+            reason = data.get('reason', 'No reason provided')
+            ticket.status = 'Rejected'
+            ticket.description = f"{ticket.description}\n\n[REJECTED]: {reason}"
+            # Reset assignment so it can be re-assigned
+            ticket.assigned_dept_id = None
+
         else:
             return {'message': 'Invalid action'}, 400
 
