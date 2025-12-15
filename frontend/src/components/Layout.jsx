@@ -47,28 +47,52 @@ const Layout = ({
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
+      {/* Mobile Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-50 bg-[#161e33]/90 backdrop-blur-xl border-r border-white/5 transition-all duration-300 ease-in-out flex flex-col lg:relative",
-          isSidebarOpen
-            ? "w-64 translate-x-0"
-            : "-translate-x-full lg:translate-x-0 lg:w-20"
+          "fixed inset-y-0 left-0 z-50 bg-[#161e33]/90 backdrop-blur-xl border-r border-white/5 transition-all duration-300 ease-in-out flex flex-col lg:relative w-64 lg:w-20 lg:translate-x-0",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          // Only apply width transition on desktop to avoid jank on mobile open
+          "lg:transition-[width]"
         )}
+        style={{
+          width: window.innerWidth >= 1024 && !isSidebarOpen ? "5rem" : "16rem",
+        }}
       >
         {/* Logo Area */}
-        <div className="h-16 flex items-center px-6 border-b border-white/5 shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 shadow-glow">
-            <span className="font-bold text-white text-lg">H</span>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5 shrink-0">
+          <div className="flex items-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 shadow-glow">
+              <span className="font-bold text-white text-lg">H</span>
+            </div>
+            <span
+              className={clsx(
+                "font-bold text-lg text-white tracking-tight ml-3 transition-opacity duration-300",
+                isSidebarOpen
+                  ? "opacity-100"
+                  : "opacity-0 w-0 overflow-hidden lg:block", // Always hide text if collapsed on desktop
+                !isSidebarOpen && "lg:hidden"
+              )}
+            >
+              HubOps
+            </span>
           </div>
-          <span
-            className={clsx(
-              "font-bold text-lg text-white tracking-tight ml-3 transition-opacity duration-300",
-              isSidebarOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
-            )}
+
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden text-zinc-400 hover:text-white"
           >
-            HubOps
-          </span>
+            <X size={20} />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -76,21 +100,33 @@ const Layout = ({
           <NavItem
             icon={<LayoutDashboard size={20} />}
             label="Dashboard"
-            active={true}
-            collapsed={!isSidebarOpen}
+            active={
+              location.pathname.includes("dashboard") ||
+              location.pathname === "/"
+            }
+            collapsed={!isSidebarOpen && window.innerWidth >= 1024}
+            onClick={() => {
+              if (window.innerWidth < 1024) setIsSidebarOpen(false);
+            }}
           />
           <NavItem
             icon={<Bell size={20} />}
             label="Notifications"
             badge="3"
-            collapsed={!isSidebarOpen}
-            onClick={onNotification}
+            collapsed={!isSidebarOpen && window.innerWidth >= 1024}
+            onClick={() => {
+              if (onNotification) onNotification();
+              if (window.innerWidth < 1024) setIsSidebarOpen(false);
+            }}
           />
           <NavItem
             icon={<Settings size={20} />}
             label="Settings"
-            collapsed={!isSidebarOpen}
-            onClick={onSettings}
+            collapsed={!isSidebarOpen && window.innerWidth >= 1024}
+            onClick={() => {
+              if (onSettings) onSettings();
+              if (window.innerWidth < 1024) setIsSidebarOpen(false);
+            }}
           />
         </nav>
 
@@ -99,7 +135,7 @@ const Layout = ({
           <div
             className={clsx(
               "flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5 transition-all",
-              !isSidebarOpen && "justify-center"
+              !isSidebarOpen && window.innerWidth >= 1024 && "justify-center"
             )}
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2b3655] to-[#3b4b70] flex items-center justify-center text-white font-medium shadow-inner shrink-0">
@@ -108,7 +144,9 @@ const Layout = ({
             <div
               className={clsx(
                 "flex-1 min-w-0 transition-opacity duration-300",
-                isSidebarOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+                !isSidebarOpen && window.innerWidth >= 1024
+                  ? "opacity-0 w-0 overflow-hidden"
+                  : "opacity-100"
               )}
             >
               <p className="text-sm font-medium text-white truncate">
@@ -123,7 +161,7 @@ const Layout = ({
             onClick={handleLogout}
             className={clsx(
               "mt-4 w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-white transition-colors py-2",
-              !isSidebarOpen && "px-0"
+              !isSidebarOpen && window.innerWidth >= 1024 && "px-0"
             )}
             title="Sign Out"
           >
@@ -131,7 +169,9 @@ const Layout = ({
             <span
               className={clsx(
                 "transition-opacity duration-300",
-                isSidebarOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+                !isSidebarOpen && window.innerWidth >= 1024
+                  ? "opacity-0 w-0 overflow-hidden"
+                  : "opacity-100"
               )}
             >
               Sign Out
