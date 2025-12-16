@@ -44,6 +44,8 @@ class Ticket(db.Model):
     proof_url = db.Column(db.String(255), nullable=True)
     assigned_staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     staff_status = db.Column(db.String(20), nullable=True) # 'Pending', 'Accepted', 'Rejected'
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    assigned_duration_minutes = db.Column(db.Integer, nullable=True) # Duration in minutes
 
     department = db.relationship('Department', backref='tickets')
     staff = db.relationship('User', foreign_keys=[assigned_staff_id], backref='assigned_tickets')
@@ -67,7 +69,9 @@ class Ticket(db.Model):
             'proof_url': self.proof_url,
             'assigned_staff_id': self.assigned_staff_id,
             'assigned_staff_name': self.staff.username if self.staff else None,
-            'staff_status': self.staff_status
+            'staff_status': self.staff_status,
+            'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
+            'assigned_duration_minutes': self.assigned_duration_minutes
         }
 
 class RecurringTask(db.Model):

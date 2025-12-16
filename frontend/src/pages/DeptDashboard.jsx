@@ -24,9 +24,14 @@ const DeptDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState(null);
   const [proofUrl, setProofUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Modals state
   const [estimateTicketId, setEstimateTicketId] = useState(null);
+  const [timeValue, setTimeValue] = useState("");
+  const [timeUnit, setTimeUnit] = useState("hours"); // minutes, hours, days
+
   const [assignTicketId, setAssignTicketId] = useState(null);
   const [staffList, setStaffList] = useState([]);
 
@@ -48,6 +53,23 @@ const DeptDashboard = () => {
     }
   };
 
+  const handleFileUpload = async (file) => {
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await axios.post("http://localhost:5000/upload", formData);
+      setProofUrl(res.data.url);
+      showToast("Proof uploaded successfully", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error uploading file", "error");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const fetchStaff = async () => {
     if (!user?.department_id) return;
     try {
@@ -63,18 +85,29 @@ const DeptDashboard = () => {
     }
   };
 
-  const handleAccept = async (time) => {
-    if (!estimateTicketId) return;
+  const handleAccept = async () => {
+    if (!estimateTicketId || !timeValue) return;
+
+    let minutes = parseInt(timeValue);
+    if (timeUnit === "hours") minutes *= 60;
+    if (timeUnit === "days") minutes *= 1440;
+
+    const readableTime = `${timeValue} ${timeUnit}`;
 
     try {
       await axios.put(
         `http://localhost:5000/tickets/${estimateTicketId}/action`,
-        { action: "accept", estimated_fix_time: time },
+        {
+          action: "accept",
+          estimated_fix_time: readableTime,
+          duration_minutes: minutes,
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchTickets();
       showToast("Job accepted successfully", "success");
       setEstimateTicketId(null);
+      setTimeValue("");
     } catch (err) {
       console.error(err);
       showToast("Error accepting job", "error");
@@ -267,24 +300,61 @@ const DeptDashboard = () => {
                 {resolvingId === ticket.id ? (
                   <div className="bg-surface/50 p-4 rounded-xl border border-white/10 animate-scale-in">
                     <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase">
-                      Proof of Fix (URL)
+                      Upload Proof of Work
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        className="input-premium py-2 text-sm"
-                        placeholder="http://..."
-                        value={proofUrl}
-                        onChange={(e) => setProofUrl(e.target.value)}
-                        autoFocus
-                      />
-                      <button
-                        onClick={() => handleResolve(ticket.id)}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
-                      >
-                        <CheckCircle size={18} />
-                      </button>
-                    </div>
+
+                    {!proofUrl ? (
+                      <div className="border border-dashed border-white/20 rounded-lg p-4 text-center hover:bg-white/5 transition-colors cursor-pointer relative">
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          onChange={(e) => {
+                            if (e.target.files[0])
+                              handleFileUpload(e.target.files[0]);
+                          }}
+                        />
+                        {isUploading ? (
+                          <Loader2 className="animate-spin w-5 h-5 mx-auto text-primary" />
+                        ) : (
+                          <div className="text-zinc-400 text-xs">
+                            <Camera className="w-6 h-6 mx-auto mb-2 text-zinc-500" />
+                            Click to upload photo or video
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="relative rounded-lg overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center">
+                          {proofUrl.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) ? (
+                            <video
+                              src={proofUrl}
+                              className="w-full h-full object-contain"
+                              controls
+                            />
+                          ) : (
+                            <img
+                              src={proofUrl}
+                              alt="Proof"
+                              className="w-full h-full object-contain"
+                            />
+                          )}
+                          <button
+                            onClick={() => setProofUrl("")}
+                            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-red-500/80 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleResolve(ticket.id)}
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl transition-colors shadow-lg shadow-emerald-500/20 text-xs font-bold flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle size={16} />
+                          Confirm Resolution
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <button
@@ -316,15 +386,53 @@ const DeptDashboard = () => {
       </div>
 
       {/* Estimate Modal */}
-      <InputModal
-        isOpen={!!estimateTicketId}
-        onClose={() => setEstimateTicketId(null)}
-        onSubmit={handleAccept}
-        title="Accept Job"
-        message="Please provide an estimated time to fix this issue."
-        placeholder="e.g., 2 hours, 1 day"
-        confirmText="Accept Job"
-      />
+      {/* Estimate Modal */}
+      {estimateTicketId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#161e33] border border-white/10 rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-white mb-4">Accept Job</h3>
+            <p className="text-zinc-400 text-sm mb-4">
+              How long will this take to fix?
+            </p>
+
+            <div className="flex gap-3 mb-6">
+              <input
+                type="number"
+                value={timeValue}
+                onChange={(e) => setTimeValue(e.target.value)}
+                className="flex-1 bg-surface border border-white/5 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+                placeholder="Duration"
+                min="1"
+              />
+              <select
+                value={timeUnit}
+                onChange={(e) => setTimeUnit(e.target.value)}
+                className="bg-surface border border-white/5 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-1 focus:ring-primary/50"
+              >
+                <option value="minutes">Mins</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setEstimateTicketId(null)}
+                className="text-zinc-400 hover:text-white text-sm px-4 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAccept}
+                disabled={!timeValue}
+                className="btn-primary text-sm px-6 py-2 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Start Timer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Assign Staff Modal */}
       {assignTicketId && (

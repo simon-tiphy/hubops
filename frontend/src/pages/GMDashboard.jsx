@@ -29,6 +29,7 @@ import {
   Clock,
   Video,
   FileText,
+  CheckCircle,
 } from "lucide-react";
 import { clsx } from "clsx";
 import RecurringTasks from "../components/RecurringTasks";
@@ -112,6 +113,76 @@ const GMDashboard = () => {
       default:
         return "bg-zinc-500/10 text-zinc-400";
     }
+  };
+
+  // Timer logic
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000); // Update every second
+    return () => clearInterval(interval);
+  }, []);
+
+  const getTimerContent = (ticket) => {
+    if (
+      ticket.status === "Resolved" &&
+      ticket.resolved_at &&
+      ticket.accepted_at
+    ) {
+      // Show total time taken
+      const start = new Date(ticket.accepted_at).getTime();
+      const end = new Date(ticket.resolved_at).getTime();
+      const diff = end - start;
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+      return (
+        <span className="text-zinc-500 text-xs flex items-center gap-1">
+          <Clock size={12} />
+          Took {hours}h {minutes}m
+        </span>
+      );
+    }
+
+    if (
+      ticket.status === "In Progress" &&
+      ticket.accepted_at &&
+      ticket.assigned_duration_minutes
+    ) {
+      const start = new Date(ticket.accepted_at).getTime();
+      const durationMs = ticket.assigned_duration_minutes * 60 * 1000;
+      const deadline = start + durationMs;
+      const diff = deadline - now;
+
+      const isOverdue = diff < 0;
+      const absDiff = Math.abs(diff);
+
+      const hours = Math.floor(absDiff / (1000 * 60 * 60));
+      const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((absDiff % (1000 * 60)) / 1000);
+
+      const timeString = `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+      return (
+        <div
+          className={clsx(
+            "flex items-center gap-1.5 px-2 py-1 rounded text-xs font-mono font-bold border",
+            isOverdue
+              ? "bg-red-500/10 text-red-500 border-red-500/20 animate-pulse"
+              : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+          )}
+        >
+          <Clock size={12} />
+          {isOverdue ? "-" : ""}
+          {timeString}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   if (loading)
@@ -205,10 +276,22 @@ const GMDashboard = () => {
                     <div className="flex items-start gap-4">
                       {/* Image Preview */}
                       <div className="w-16 h-16 bg-surface-highlight rounded-lg border border-white/5 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                        {ticket.photo_url ? (
+                        {ticket.proof_url ? (
+                          ticket.proof_url.match(
+                            /\.(mp4|webm|ogg|mov|avi|mkv)$/i
+                          ) ? (
+                            <Video className="text-emerald-400 w-8 h-8" />
+                          ) : (
+                            <img
+                              src={ticket.proof_url}
+                              alt="Proof"
+                              className="w-full h-full object-cover"
+                            />
+                          )
+                        ) : ticket.photo_url ? (
                           <img
                             src={ticket.photo_url}
-                            alt="Proof"
+                            alt="Issue"
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -221,14 +304,17 @@ const GMDashboard = () => {
                           <h4 className="font-semibold text-zinc-200 group-hover:text-white transition-colors">
                             {ticket.type}
                           </h4>
-                          <span
-                            className={clsx(
-                              "px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border",
-                              getStatusColor(ticket.status)
-                            )}
-                          >
-                            {ticket.status}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {getTimerContent(ticket)}
+                            <span
+                              className={clsx(
+                                "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                                getStatusColor(ticket.status)
+                              )}
+                            >
+                              {ticket.status}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-sm text-zinc-400 mb-2 line-clamp-2">
                           {ticket.description}
@@ -596,7 +682,6 @@ const TicketDetailsModal = ({ ticket, onClose, getStatusColor }) => {
               {ticket.type}
             </span>
           </div>
-
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
               Description
@@ -605,22 +690,85 @@ const TicketDetailsModal = ({ ticket, onClose, getStatusColor }) => {
               {ticket.description}
             </div>
           </div>
-
+          {/* Time Stats */}
+          {ticket.accepted_at && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-surface/30 rounded-xl border border-white/5">
+                <span className="text-xs text-zinc-500 block mb-1">
+                  Started At
+                </span>
+                <p className="text-white font-mono text-sm">
+                  {new Date(ticket.accepted_at).toLocaleString()}
+                </p>
+              </div>
+              <div className="p-4 bg-surface/30 rounded-xl border border-white/5">
+                <span className="text-xs text-zinc-500 block mb-1">
+                  Duration / Deadline
+                </span>
+                <p className="text-white font-mono text-sm">
+                  {ticket.assigned_duration_minutes
+                    ? `${ticket.assigned_duration_minutes} Minutes`
+                    : "N/A"}
+                </p>
+              </div>
+            </div>
+          )}
           {ticket.photo_url && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
-                Attached Media
+                Original Issue
               </h3>
               <div className="rounded-xl overflow-hidden border border-white/10 bg-black">
                 <img
                   src={ticket.photo_url}
-                  alt="Attachment"
-                  className="w-full h-auto max-h-[400px] object-contain"
+                  alt="Issue"
+                  className="w-full h-auto max-h-[300px] object-contain"
                 />
               </div>
             </div>
           )}
-
+          {ticket.proof_url && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <CheckCircle size={16} /> Proof of Resolution
+              </h3>
+              <div className="rounded-xl overflow-hidden border border-emerald-500/20 bg-black flex flex-col items-center justify-center relative">
+                {ticket.proof_url.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/i) ? (
+                  <video
+                    src={ticket.proof_url}
+                    className="w-full h-auto max-h-[400px]"
+                    controls
+                    playsInline
+                  />
+                ) : ticket.proof_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  <img
+                    src={ticket.proof_url}
+                    alt="Resolution Proof"
+                    className="w-full h-auto max-h-[400px] object-contain"
+                  />
+                ) : (
+                  <div className="p-8 text-center">
+                    <FileText
+                      size={48}
+                      className="text-zinc-500 mb-2 mx-auto"
+                    />
+                    <p className="text-zinc-400 text-sm">
+                      File format not previewable
+                    </p>
+                  </div>
+                )}
+                <a
+                  href={ticket.proof_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-primary/80 text-white rounded-lg backdrop-blur-sm transition-colors"
+                  title="Open in New Tab"
+                >
+                  <ArrowUpRight size={16} />
+                </a>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-surface/30 rounded-xl border border-white/5">
               <span className="text-xs text-zinc-500 block mb-1">Tenant</span>

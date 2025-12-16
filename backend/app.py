@@ -152,7 +152,9 @@ class TicketAction(Resource):
         elif action == 'accept':
             if current_user['role'] != 'dept':
                 return {'message': 'Unauthorized'}, 403
-            ticket.estimated_fix_time = data.get('estimated_fix_time')
+            ticket.estimated_fix_time = data.get('estimated_fix_time') # Human readable string
+            ticket.assigned_duration_minutes = data.get('duration_minutes') # Integer for timer
+            ticket.accepted_at = datetime.utcnow()
             ticket.status = 'In Progress'
 
         elif action == 'resolve':
