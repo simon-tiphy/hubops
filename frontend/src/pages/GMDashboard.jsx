@@ -199,6 +199,7 @@ const GMDashboard = () => {
       onSearch={setSearchQuery}
       onNotification={() => setShowNotifications(true)}
       onSettings={() => setShowSettings(true)}
+      notificationCount={tickets.filter((t) => t.status === "Resolved").length}
     >
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -274,9 +275,15 @@ const GMDashboard = () => {
                     className="group bg-surface/30 hover:bg-surface/60 border border-white/5 p-4 rounded-xl transition-all flex flex-col gap-4 animate-fade-in"
                   >
                     <div className="flex items-start gap-4">
-                      {/* Image Preview */}
+                      {/* Image Preview - Always show original issue */}
                       <div className="w-16 h-16 bg-surface-highlight rounded-lg border border-white/5 flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                        {ticket.proof_url ? (
+                        {ticket.photo_url ? (
+                          <img
+                            src={ticket.photo_url}
+                            alt="Issue"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : ticket.proof_url ? (
                           ticket.proof_url.match(
                             /\.(mp4|webm|ogg|mov|avi|mkv)$/i
                           ) ? (
@@ -288,12 +295,6 @@ const GMDashboard = () => {
                               className="w-full h-full object-cover"
                             />
                           )
-                        ) : ticket.photo_url ? (
-                          <img
-                            src={ticket.photo_url}
-                            alt="Issue"
-                            className="w-full h-full object-cover"
-                          />
                         ) : (
                           <AlertTriangle className="text-zinc-600" />
                         )}

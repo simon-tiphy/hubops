@@ -22,6 +22,7 @@ const Layout = ({
   onSearch,
   onNotification,
   onSettings,
+  notificationCount = 0,
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -112,7 +113,9 @@ const Layout = ({
           <NavItem
             icon={<Bell size={20} />}
             label="Notifications"
-            badge="3"
+            badge={
+              notificationCount > 0 ? notificationCount.toString() : undefined
+            }
             collapsed={!isSidebarOpen && window.innerWidth >= 1024}
             onClick={() => {
               if (onNotification) onNotification();
