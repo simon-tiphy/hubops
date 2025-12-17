@@ -6,7 +6,7 @@
 
 <!-- *Note: You can replace the banner above with a genuine screenshot of the application.* -->
 
-**HubOps** is a state-of-the-art **Tenant Management Platform** designed to optimize communication and workflows within large-scale retail environments like "The Hub Karen". It bridges the gap between Tenants, Operations Staff, Department Heads, and General Management through a unified, role-based interface.
+**HubOps** is a state-of-the-art **Tenant Management Platform** designed to optimize communication and workflows within large-scale retail environments like "Malls,Apartment Complexes,Shopping Centers". It bridges the gap between Tenants, Operations Staff, Department Heads, and General Management through a unified, role-based interface.
 
 Built with a focus on modern aesthetics and responsiveness, HubOps ensures that managing maintenance requests, tracking recurring tasks, and analyzing performance is seamless and intuitive.
 
@@ -164,4 +164,4 @@ Contributions are welcome! If you'd like to improve HubOps, please follow these 
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. 
