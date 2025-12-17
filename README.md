@@ -2,7 +2,7 @@
 
 > **Streamlining Operations for Premium Retail Environments**
 
-![HubOps Banner](https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=1600&auto=format&fit=crop)
+![HubOps Banner](assets/hubops_banner.png)
 
 <!-- *Note: You can replace the banner above with a genuine screenshot of the application.* -->
 
