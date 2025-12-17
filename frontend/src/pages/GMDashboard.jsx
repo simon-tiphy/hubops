@@ -16,6 +16,7 @@ import {
   Line,
   Area,
   AreaChart,
+  CartesianGrid,
 } from "recharts";
 import {
   CheckSquare,
@@ -241,8 +242,8 @@ const GMDashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Column: Triage & Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* Main Column: Triage */}
         <div className="lg:col-span-2 space-y-8">
           {/* Triage Queue */}
           <div className="glass-card p-6">
@@ -380,84 +381,6 @@ const GMDashboard = () => {
             </div>
           </div>
 
-          {/* Analytics Grid */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="glass-card p-6">
-              <h4 className="text-sm font-medium text-zinc-400 mb-6">
-                Issues per Department
-              </h4>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats?.issues_per_dept}>
-                    <Tooltip
-                      cursor={{ fill: "transparent" }}
-                      contentStyle={{
-                        backgroundColor: "#18181b",
-                        border: "1px solid #27272a",
-                        borderRadius: "8px",
-                      }}
-                      itemStyle={{ color: "#fff" }}
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill="#6366f1"
-                      radius={[4, 4, 4, 4]}
-                      barSize={32}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            <div className="glass-card p-6">
-              <h4 className="text-sm font-medium text-zinc-400 mb-6">
-                Avg Time to Fix (Hours)
-              </h4>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={stats?.avg_time}>
-                    <defs>
-                      <linearGradient
-                        id="colorHours"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#8b5cf6"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#8b5cf6"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#18181b",
-                        border: "1px solid #27272a",
-                        borderRadius: "8px",
-                      }}
-                      itemStyle={{ color: "#fff" }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="hours"
-                      stroke="#8b5cf6"
-                      fillOpacity={1}
-                      fill="url(#colorHours)"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
           {/* Recurring Maintenance Scheduler */}
           <RecurringTasks />
         </div>
@@ -529,6 +452,9 @@ const GMDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Full Width Analytics Section */}
+      <AnalyticsSection stats={stats} />
 
       {/* Notifications Modal */}
       {showNotifications && (
@@ -802,3 +728,191 @@ const TicketDetailsModal = ({ ticket, onClose, getStatusColor }) => {
 };
 
 export default GMDashboard;
+
+const AnalyticsSection = ({ stats }) => {
+  const [issuesChartType, setIssuesChartType] = useState("bar");
+  const [timeChartType, setTimeChartType] = useState("area");
+
+  const COLORS = ["#10b981", "#64748b", "#ef4444", "#f59e0b", "#6366f1"];
+
+  const renderIssuesChart = () => {
+    switch (issuesChartType) {
+      case "line":
+        return (
+          <LineChart data={stats?.issues_per_dept} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip
+              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              itemStyle={{ color: "#fff" }}
+            />
+            <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: "#6366f1" }} />
+          </LineChart>
+        );
+      case "pie":
+        return (
+          <PieChart>
+            <Pie
+              data={stats?.issues_per_dept}
+              cx="50%"
+              cy="50%"
+              innerRadius={80}
+              outerRadius={120}
+              paddingAngle={5}
+              dataKey="count"
+            >
+              {stats?.issues_per_dept.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        );
+      case "bar":
+      default:
+        return (
+          <BarChart data={stats?.issues_per_dept} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip
+              cursor={{ fill: "transparent" }}
+              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              itemStyle={{ color: "#fff" }}
+            />
+            <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={60} />
+          </BarChart>
+        );
+    }
+  };
+
+  const renderTimeChart = () => {
+    switch (timeChartType) {
+      case "bar":
+        return (
+          <BarChart data={stats?.avg_time} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <XAxis dataKey="day" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}h`} />
+            <Tooltip
+              cursor={{ fill: "transparent" }}
+              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              itemStyle={{ color: "#fff" }}
+              formatter={(value) => [`${value} hours`, "Avg Time"]}
+              labelFormatter={(label, payload) => payload[0]?.payload?.full_date || label}
+            />
+            <Bar dataKey="hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={60} />
+          </BarChart>
+        );
+      case "pie":
+         return (
+          <PieChart>
+            <Pie
+              data={stats?.avg_time}
+              cx="50%"
+              cy="50%"
+              innerRadius={80}
+              outerRadius={120}
+              paddingAngle={5}
+              dataKey="hours"
+              nameKey="day" // Use day name as label
+            >
+              {stats?.avg_time.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value) => [`${value} hours`, "Avg Time"]} />
+          </PieChart>
+        );
+      case "area":
+      default:
+        return (
+          <AreaChart data={stats?.avg_time} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+            <XAxis dataKey="day" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}h`} />
+            <Tooltip
+              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              itemStyle={{ color: "#fff" }}
+              formatter={(value) => [`${value} hours`, "Avg Time"]}
+              labelFormatter={(label, payload) => payload[0]?.payload?.full_date || label}
+            />
+            <Area type="monotone" dataKey="hours" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorHours)" strokeWidth={3} />
+          </AreaChart>
+        );
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Issues per Department */}
+      <div className="glass-card p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h4 className="text-lg font-semibold text-white">Issues per Department</h4>
+            <p className="text-sm text-zinc-400">Total tickets raised by category</p>
+          </div>
+          <div className="flex bg-surface/50 rounded-lg p-1 border border-white/5">
+            {["bar", "line", "pie"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setIssuesChartType(type)}
+                className={clsx(
+                  "px-3 py-1 rounded-md text-xs font-medium capitalize transition-all",
+                  issuesChartType === type
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                )}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
+            {renderIssuesChart()}
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Average Resolution Time */}
+      <div className="glass-card p-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h4 className="text-lg font-semibold text-white">Average Resolution Time</h4>
+            <p className="text-sm text-zinc-400">Time taken to resolve tickets over the last 7 days</p>
+          </div>
+           <div className="flex bg-surface/50 rounded-lg p-1 border border-white/5">
+            {["area", "bar", "pie"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setTimeChartType(type)}
+                className={clsx(
+                  "px-3 py-1 rounded-md text-xs font-medium capitalize transition-all",
+                  timeChartType === type
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                )}
+              >
+                {type === "area" ? "Line/Area" : type}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
+            {renderTimeChart()}
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};

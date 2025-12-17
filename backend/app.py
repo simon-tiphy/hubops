@@ -321,21 +321,63 @@ class DashboardStats(Resource):
             count = Ticket.query.filter_by(assigned_dept_id=dept.id).count()
             issues_per_dept.append({'name': dept.name, 'count': count})
             
-        # Tenant Satisfaction (Mock data for now, or avg of feedback_rating)
+        # Tenant Satisfaction (Real Calculation from feedback_rating)
+        # 5 = Happy, 3-4 = Neutral, 1-2 = Unhappy
+        tickets_with_feedback = Ticket.query.filter(Ticket.feedback_rating != None).all()
+        
+        happy_count = 0
+        neutral_count = 0
+        unhappy_count = 0
+        
+        for t in tickets_with_feedback:
+            if t.feedback_rating == 5:
+                happy_count += 1
+            elif t.feedback_rating >= 3:
+                neutral_count += 1
+            else:
+                unhappy_count += 1
+                
         satisfaction = [
-            {'name': 'Happy', 'value': 70},
-            {'name': 'Neutral', 'value': 20},
-            {'name': 'Unhappy', 'value': 10}
+            {'name': 'Happy', 'value': happy_count},
+            {'name': 'Neutral', 'value': neutral_count},
+            {'name': 'Unhappy', 'value': unhappy_count}
         ]
         
-        # Avg Time to Fix (Mock or calc)
-        avg_time = [
-            {'day': 'Mon', 'hours': 4},
-            {'day': 'Tue', 'hours': 3},
-            {'day': 'Wed', 'hours': 5},
-            {'day': 'Thu', 'hours': 2},
-            {'day': 'Fri', 'hours': 4},
-        ]
+        # Avg Time to Fix - Last 7 Days (Real Calculation)
+        avg_time = []
+        today = datetime.utcnow().date()
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            day_start = datetime.combine(day, datetime.min.time())
+            day_end = datetime.combine(day, datetime.max.time())
+            
+            # Find tickets resolved on this day
+            resolved_tickets = Ticket.query.filter(
+                Ticket.status == 'Resolved',
+                Ticket.resolved_at >= day_start,
+                Ticket.resolved_at <= day_end
+            ).all()
+            
+            if not resolved_tickets:
+                hours = 0
+            else:
+                total_seconds = 0
+                count = 0
+                for ticket in resolved_tickets:
+                    # Use accepted_at as start, fallback to created_at
+                    start_time = ticket.accepted_at or ticket.created_at
+                    if ticket.resolved_at and start_time:
+                        duration = ticket.resolved_at - start_time
+                        total_seconds += duration.total_seconds()
+                        count += 1
+                
+                hours = round((total_seconds / count) / 3600, 1) if count > 0 else 0
+            
+            avg_time.append({
+                'day': day.strftime('%a'), # Mon, Tue
+                'full_date': day.strftime('%Y-%m-%d'),
+                'hours': hours
+            })
         
         # Dept Load
         dept_load = []
