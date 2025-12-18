@@ -170,8 +170,31 @@ class TicketAction(Resource):
             ticket.staff_status = 'Pending'
             
         elif action == 'staff_accept':
+            ticket.estimated_fix_time = data.get('estimated_fix_time')
+            ticket.assigned_duration_minutes = data.get('duration_minutes')
+            ticket.accepted_at = datetime.utcnow()
             ticket.staff_status = 'Accepted'
             ticket.status = 'In Progress'
+
+        elif action == 'staff_submit_work':
+            # Staff submits work for review
+            ticket.proof_url = data.get('proof_url')
+            ticket.status = 'Pending QA'
+            ticket.staff_status = 'Completed'
+        
+        elif action == 'dept_approve_work':
+            if current_user['role'] != 'dept':
+                return {'message': 'Unauthorized'}, 403
+            ticket.status = 'Resolved'
+            ticket.resolved_at = datetime.utcnow()
+
+        elif action == 'dept_reject_work':
+            if current_user['role'] != 'dept':
+                return {'message': 'Unauthorized'}, 403
+            # Send back to staff
+            ticket.status = 'In Progress'
+            ticket.staff_status = 'Accepted'
+            # Optional: Add rejection reason to description/logs
             
         elif action == 'staff_reject':
             ticket.assigned_staff_id = None

@@ -93,7 +93,11 @@ const GMDashboard = () => {
 
     if (filterStatus === "Pending") return t.status === "Pending Approval";
     if (filterStatus === "Active")
-      return t.status === "In Progress" || t.status === "Assigned";
+      return (
+        t.status === "In Progress" ||
+        t.status === "Assigned" ||
+        t.status === "Pending QA"
+      );
     if (filterStatus === "Resolved") return t.status === "Resolved";
     if (filterStatus === "Rejected") return t.status === "Rejected";
     return true;
@@ -111,6 +115,8 @@ const GMDashboard = () => {
         return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
       case "Rejected":
         return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "Pending QA":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/20";
       default:
         return "bg-zinc-500/10 text-zinc-400";
     }
@@ -216,7 +222,10 @@ const GMDashboard = () => {
           title="Active Issues"
           value={
             tickets.filter(
-              (t) => t.status === "In Progress" || t.status === "Assigned"
+              (t) =>
+                t.status === "In Progress" ||
+                t.status === "Assigned" ||
+                t.status === "Pending QA"
             ).length
           }
           change="+5"
@@ -739,15 +748,45 @@ const AnalyticsSection = ({ stats }) => {
     switch (issuesChartType) {
       case "line":
         return (
-          <LineChart data={stats?.issues_per_dept} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-            <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+          <LineChart
+            data={stats?.issues_per_dept}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#27272a"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="name"
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              allowDecimals={false}
+            />
             <Tooltip
-              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              contentStyle={{
+                backgroundColor: "#18181b",
+                border: "1px solid #27272a",
+                borderRadius: "8px",
+              }}
               itemStyle={{ color: "#fff" }}
             />
-            <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: "#6366f1" }} />
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke="#6366f1"
+              strokeWidth={3}
+              dot={{ r: 4, fill: "#6366f1" }}
+            />
           </LineChart>
         );
       case "pie":
@@ -763,7 +802,10 @@ const AnalyticsSection = ({ stats }) => {
               dataKey="count"
             >
               {stats?.issues_per_dept.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
               ))}
             </Pie>
             <Tooltip />
@@ -772,16 +814,45 @@ const AnalyticsSection = ({ stats }) => {
       case "bar":
       default:
         return (
-          <BarChart data={stats?.issues_per_dept} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-            <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+          <BarChart
+            data={stats?.issues_per_dept}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#27272a"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="name"
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              allowDecimals={false}
+            />
             <Tooltip
               cursor={{ fill: "transparent" }}
-              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              contentStyle={{
+                backgroundColor: "#18181b",
+                border: "1px solid #27272a",
+                borderRadius: "8px",
+              }}
               itemStyle={{ color: "#fff" }}
             />
-            <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={60} />
+            <Bar
+              dataKey="count"
+              fill="#6366f1"
+              radius={[4, 4, 0, 0]}
+              barSize={60}
+            />
           </BarChart>
         );
     }
@@ -791,22 +862,53 @@ const AnalyticsSection = ({ stats }) => {
     switch (timeChartType) {
       case "bar":
         return (
-          <BarChart data={stats?.avg_time} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-            <XAxis dataKey="day" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}h`} />
+          <BarChart
+            data={stats?.avg_time}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#27272a"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="day"
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `${value}h`}
+            />
             <Tooltip
               cursor={{ fill: "transparent" }}
-              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              contentStyle={{
+                backgroundColor: "#18181b",
+                border: "1px solid #27272a",
+                borderRadius: "8px",
+              }}
               itemStyle={{ color: "#fff" }}
               formatter={(value) => [`${value} hours`, "Avg Time"]}
-              labelFormatter={(label, payload) => payload[0]?.payload?.full_date || label}
+              labelFormatter={(label, payload) =>
+                payload[0]?.payload?.full_date || label
+              }
             />
-            <Bar dataKey="hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={60} />
+            <Bar
+              dataKey="hours"
+              fill="#8b5cf6"
+              radius={[4, 4, 0, 0]}
+              barSize={60}
+            />
           </BarChart>
         );
       case "pie":
-         return (
+        return (
           <PieChart>
             <Pie
               data={stats?.avg_time}
@@ -819,7 +921,10 @@ const AnalyticsSection = ({ stats }) => {
               nameKey="day" // Use day name as label
             >
               {stats?.avg_time.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
               ))}
             </Pie>
             <Tooltip formatter={(value) => [`${value} hours`, "Avg Time"]} />
@@ -828,23 +933,56 @@ const AnalyticsSection = ({ stats }) => {
       case "area":
       default:
         return (
-          <AreaChart data={stats?.avg_time} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <AreaChart
+            data={stats?.avg_time}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
             <defs>
               <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-            <XAxis dataKey="day" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-            <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}h`} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#27272a"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="day"
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis
+              stroke="#71717a"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `${value}h`}
+            />
             <Tooltip
-              contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
+              contentStyle={{
+                backgroundColor: "#18181b",
+                border: "1px solid #27272a",
+                borderRadius: "8px",
+              }}
               itemStyle={{ color: "#fff" }}
               formatter={(value) => [`${value} hours`, "Avg Time"]}
-              labelFormatter={(label, payload) => payload[0]?.payload?.full_date || label}
+              labelFormatter={(label, payload) =>
+                payload[0]?.payload?.full_date || label
+              }
             />
-            <Area type="monotone" dataKey="hours" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorHours)" strokeWidth={3} />
+            <Area
+              type="monotone"
+              dataKey="hours"
+              stroke="#8b5cf6"
+              fillOpacity={1}
+              fill="url(#colorHours)"
+              strokeWidth={3}
+            />
           </AreaChart>
         );
     }
@@ -856,8 +994,12 @@ const AnalyticsSection = ({ stats }) => {
       <div className="glass-card p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h4 className="text-lg font-semibold text-white">Issues per Department</h4>
-            <p className="text-sm text-zinc-400">Total tickets raised by category</p>
+            <h4 className="text-lg font-semibold text-white">
+              Issues per Department
+            </h4>
+            <p className="text-sm text-zinc-400">
+              Total tickets raised by category
+            </p>
           </div>
           <div className="flex bg-surface/50 rounded-lg p-1 border border-white/5">
             {["bar", "line", "pie"].map((type) => (
@@ -887,10 +1029,14 @@ const AnalyticsSection = ({ stats }) => {
       <div className="glass-card p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h4 className="text-lg font-semibold text-white">Average Resolution Time</h4>
-            <p className="text-sm text-zinc-400">Time taken to resolve tickets over the last 7 days</p>
+            <h4 className="text-lg font-semibold text-white">
+              Average Resolution Time
+            </h4>
+            <p className="text-sm text-zinc-400">
+              Time taken to resolve tickets over the last 7 days
+            </p>
           </div>
-           <div className="flex bg-surface/50 rounded-lg p-1 border border-white/5">
+          <div className="flex bg-surface/50 rounded-lg p-1 border border-white/5">
             {["area", "bar", "pie"].map((type) => (
               <button
                 key={type}

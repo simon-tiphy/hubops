@@ -153,8 +153,39 @@ const DeptDashboard = () => {
     }
   };
 
+  const handleApprove = async (ticketId) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/tickets/${ticketId}/action`,
+        { action: "dept_approve_work" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchTickets();
+      showToast("Work approved", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error approving work", "error");
+    }
+  };
+
+  const handleReject = async (ticketId) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/tickets/${ticketId}/action`,
+        { action: "dept_reject_work" },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchTickets();
+      showToast("Work rejected", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error rejecting work", "error");
+    }
+  };
+
   const assignedTickets = tickets.filter((t) => t.status === "Assigned");
   const inProgressTickets = tickets.filter((t) => t.status === "In Progress");
+  const pendingQATickets = tickets.filter((t) => t.status === "Pending QA");
 
   if (loading)
     return (
@@ -168,7 +199,7 @@ const DeptDashboard = () => {
       title={`${user?.role === "dept" ? "Maintenance" : "Department"} Tasks`}
       role="Head of Dept"
     >
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-3 gap-6">
         {/* New Assignments Column */}
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -379,6 +410,101 @@ const DeptDashboard = () => {
                     </span>
                   </div>
                 )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Review / QA Column */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h2 className="text-lg font-semibold text-white">Review & QA</h2>
+            <span className="bg-purple-500/10 text-purple-400 text-xs font-bold px-2 py-1 rounded-md border border-purple-500/20">
+              {pendingQATickets.length}
+            </span>
+          </div>
+
+          {pendingQATickets.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
+              <p className="text-zinc-500 text-sm">No work pending review.</p>
+            </div>
+          ) : (
+            pendingQATickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="glass-card p-6 border-l-4 border-l-purple-500 animate-fade-in-up"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-1 block">
+                      Needs Approval
+                    </span>
+                    <h3 className="text-lg font-bold text-white">
+                      {ticket.type}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-surface/50 px-2 py-1 rounded text-purple-400 text-xs font-medium border border-white/5">
+                    <Clock size={14} />
+                    <span>{ticket.estimated_fix_time || "No Est."}</span>
+                  </div>
+                </div>
+
+                <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
+                  {ticket.description}
+                </p>
+
+                {ticket.proof_url && (
+                  <div className="mb-4 rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                    {ticket.proof_url.match(
+                      /\.(mp4|webm|ogg|mov|avi|mkv)$/i
+                    ) ? (
+                      <video
+                        src={ticket.proof_url}
+                        className="w-full h-full object-contain"
+                        controls
+                      />
+                    ) : (
+                      <img
+                        src={ticket.proof_url}
+                        alt="Proof"
+                        className="w-full h-full object-contain"
+                      />
+                    )}
+                    <a
+                      href={ticket.proof_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      View Full
+                    </a>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="text-xs text-zinc-500">
+                    Staff:{" "}
+                    <span className="text-zinc-300">
+                      {ticket.assigned_staff_name}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleReject(ticket.id)}
+                      className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                      title="Reject Work"
+                    >
+                      <X size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleApprove(ticket.id)}
+                      className="btn-primary text-xs py-2 px-4 flex items-center gap-2"
+                    >
+                      <CheckCircle size={14} />
+                      Approve
+                    </button>
+                  </div>
+                </div>
               </div>
             ))
           )}
