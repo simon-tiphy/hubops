@@ -9,10 +9,12 @@ import {
   CheckCircle,
   Camera,
   Loader2,
+  Check,
   Calendar,
   MapPin,
   UserPlus,
   Users,
+  UserMinus,
   X,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -187,8 +189,11 @@ const DeptDashboard = () => {
   };
 
   const assignedTickets = tickets.filter((t) => t.status === "Assigned");
-  const inProgressTickets = tickets.filter((t) => t.status === "In Progress");
+  const inProgressTickets = tickets.filter(
+    (t) => t.status === "In Progress" && t.staff_status !== "Rejected"
+  );
   const pendingQATickets = tickets.filter((t) => t.status === "Pending QA");
+  const rejectedTickets = tickets.filter((t) => t.staff_status === "Rejected");
 
   if (loading)
     return (
@@ -202,7 +207,7 @@ const DeptDashboard = () => {
       title={`${user?.role === "dept" ? "Maintenance" : "Department"} Tasks`}
       role="Head of Dept"
     >
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-4">
         {/* New Assignments Column */}
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -562,8 +567,85 @@ const DeptDashboard = () => {
             ))
           )}
         </div>
-      </div>
 
+        {/* Rejected / Sent Back Column */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <h2 className="text-lg font-semibold text-white">Sent Back</h2>
+            <span className="bg-red-500/10 text-red-400 text-xs font-bold px-2 py-1 rounded-md border border-red-500/20">
+              {rejectedTickets.length}
+            </span>
+          </div>
+
+          {rejectedTickets.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
+              <p className="text-zinc-500 text-sm">No rejected work.</p>
+            </div>
+          ) : (
+            rejectedTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="glass-card p-6 border-l-4 border-l-red-500 animate-fade-in-up"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1 block">
+                      Rejected
+                    </span>
+                    <h3 className="text-lg font-bold text-white">
+                      {ticket.type}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-surface/50 px-2 py-1 rounded text-red-400 text-xs font-medium border border-white/5">
+                    <UserMinus size={14} />
+                    <span>{ticket.assigned_staff_name}</span>
+                  </div>
+                </div>
+
+                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <p className="text-[10px] uppercase font-bold text-red-400 mb-1">
+                    Reason for Rejection
+                  </p>
+                  <p className="text-red-300 text-xs italic">
+                    "{ticket.rejection_message}"
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="rounded-xl overflow-hidden border border-white/10 h-24 bg-black flex items-center justify-center relative group">
+                    <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Issue
+                    </span>
+                    {ticket.photo_url ? (
+                      <img
+                        src={ticket.photo_url}
+                        className="w-full h-full object-contain"
+                        alt="Issue"
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-500">No Img</span>
+                    )}
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-white/10 h-24 bg-black flex items-center justify-center relative group opacity-50 grayscale hover:grayscale-0 transition-all">
+                    <span className="absolute top-2 left-2 bg-red-500/80 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Rejected Proof
+                    </span>
+                    {ticket.proof_url ? (
+                      <img
+                        src={ticket.proof_url}
+                        className="w-full h-full object-contain"
+                        alt="Proof"
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-500">None</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
       {/* Estimate Modal */}
       {/* Estimate Modal */}
       {estimateTicketId && (
@@ -612,7 +694,6 @@ const DeptDashboard = () => {
           </div>
         </div>
       )}
-
       {/* Assign Staff Modal */}
       {assignTicketId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">

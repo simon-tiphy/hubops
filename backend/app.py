@@ -195,7 +195,7 @@ class TicketAction(Resource):
             ticket.status = 'In Progress'
             ticket.staff_status = 'Rejected'
             ticket.rejection_message = data.get('rejection_message')
-            ticket.proof_url = None # Optional: Clear proof to force re-upload
+            # ticket.proof_url = None # KEPT for history/visibility as per new requirement
             # Optional: Add rejection reason to description/logs
             
         elif action == 'staff_reject':

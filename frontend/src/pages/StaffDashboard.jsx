@@ -272,16 +272,44 @@ const StaffDashboard = () => {
                 </p>
 
                 {ticket.staff_status === "Rejected" && (
-                  <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl animate-pulse">
-                    <h4 className="text-red-400 text-sm font-bold mb-1 flex items-center gap-2">
-                      <X size={14} /> Work Rejected
-                    </h4>
-                    <p className="text-red-200 text-xs">
-                      "{ticket.rejection_message || "No reason provided."}"
-                    </p>
-                    <p className="text-red-400 text-[10px] mt-2 uppercase font-bold">
-                      Please redo work and submit again
-                    </p>
+                  <div className="mb-6 space-y-4">
+                    <div className="p-4 bg-red-500/20 border border-red-500/50 rounded-xl animate-pulse">
+                      <h4 className="text-red-400 text-sm font-bold mb-1 flex items-center gap-2">
+                        <X size={14} /> Work Rejected
+                      </h4>
+                      <p className="text-red-200 text-xs">
+                        "{ticket.rejection_message || "No reason provided."}"
+                      </p>
+                      <p className="text-red-400 text-[10px] mt-2 uppercase font-bold">
+                        Please redo work and submit again
+                      </p>
+                    </div>
+
+                    {/* Show Previous Attempt if it exists (since we now retain it in backend) */}
+                    {ticket.proof_url && (
+                      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/50 p-3">
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-2">
+                          Previous Attempt
+                        </span>
+                        <div className="h-24 flex items-center justify-center bg-black rounded relative group">
+                          {ticket.proof_url.match(
+                            /\.(mp4|webm|ogg|mov|avi|mkv)$/i
+                          ) ? (
+                            <video
+                              src={ticket.proof_url}
+                              className="h-full object-contain"
+                              controls
+                            />
+                          ) : (
+                            <img
+                              src={ticket.proof_url}
+                              alt="Previous Attempt"
+                              className="h-full object-contain"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
