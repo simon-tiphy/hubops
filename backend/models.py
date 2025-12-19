@@ -44,6 +44,7 @@ class Ticket(db.Model):
     proof_url = db.Column(db.String(255), nullable=True)
     assigned_staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     staff_status = db.Column(db.String(20), nullable=True) # 'Pending', 'Accepted', 'Rejected'
+    rejection_message = db.Column(db.Text, nullable=True)
     accepted_at = db.Column(db.DateTime, nullable=True)
     assigned_duration_minutes = db.Column(db.Integer, nullable=True) # Duration in minutes
 
@@ -70,6 +71,7 @@ class Ticket(db.Model):
             'assigned_staff_id': self.assigned_staff_id,
             'assigned_staff_name': self.staff.username if self.staff else None,
             'staff_status': self.staff_status,
+            'rejection_message': self.rejection_message,
             'accepted_at': self.accepted_at.isoformat() if self.accepted_at else None,
             'assigned_duration_minutes': self.assigned_duration_minutes
         }

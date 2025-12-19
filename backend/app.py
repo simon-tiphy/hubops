@@ -193,7 +193,9 @@ class TicketAction(Resource):
                 return {'message': 'Unauthorized'}, 403
             # Send back to staff
             ticket.status = 'In Progress'
-            ticket.staff_status = 'Accepted'
+            ticket.staff_status = 'Rejected'
+            ticket.rejection_message = data.get('rejection_message')
+            ticket.proof_url = None # Optional: Clear proof to force re-upload
             # Optional: Add rejection reason to description/logs
             
         elif action == 'staff_reject':

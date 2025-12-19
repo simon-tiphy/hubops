@@ -33,6 +33,7 @@ const DeptDashboard = () => {
   const [timeUnit, setTimeUnit] = useState("hours"); // minutes, hours, days
 
   const [assignTicketId, setAssignTicketId] = useState(null);
+  const [rejectTicketId, setRejectTicketId] = useState(null);
   const [staffList, setStaffList] = useState([]);
 
   useEffect(() => {
@@ -168,15 +169,17 @@ const DeptDashboard = () => {
     }
   };
 
-  const handleReject = async (ticketId) => {
+  const handleReject = async (reason) => {
+    if (!rejectTicketId) return;
     try {
       await axios.put(
-        `http://localhost:5000/tickets/${ticketId}/action`,
-        { action: "dept_reject_work" },
+        `http://localhost:5000/tickets/${rejectTicketId}/action`,
+        { action: "dept_reject_work", rejection_message: reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchTickets();
       showToast("Work rejected", "success");
+      setRejectTicketId(null);
     } catch (err) {
       console.error(err);
       showToast("Error rejecting work", "error");
@@ -240,6 +243,19 @@ const DeptDashboard = () => {
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
                   {ticket.description}
                 </p>
+
+                {ticket.photo_url && (
+                  <div className="mb-4 rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                    <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Original Issue
+                    </span>
+                    <img
+                      src={ticket.photo_url}
+                      alt="Issue"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
                   <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -327,6 +343,19 @@ const DeptDashboard = () => {
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
                   {ticket.description}
                 </p>
+
+                {ticket.photo_url && (
+                  <div className="mb-4 rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                    <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Original Issue
+                    </span>
+                    <img
+                      src={ticket.photo_url}
+                      alt="Issue"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
 
                 {resolvingId === ticket.id ? (
                   <div className="bg-surface/50 p-4 rounded-xl border border-white/10 animate-scale-in">
@@ -453,33 +482,57 @@ const DeptDashboard = () => {
                   {ticket.description}
                 </p>
 
-                {ticket.proof_url && (
-                  <div className="mb-4 rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
-                    {ticket.proof_url.match(
-                      /\.(mp4|webm|ogg|mov|avi|mkv)$/i
-                    ) ? (
-                      <video
-                        src={ticket.proof_url}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  {/* Tenant Original Issue */}
+                  <div className="rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                    <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Original Issue
+                    </span>
+                    {ticket.photo_url ? (
+                      <img
+                        src={ticket.photo_url}
+                        alt="Issue"
                         className="w-full h-full object-contain"
-                        controls
                       />
                     ) : (
-                      <img
-                        src={ticket.proof_url}
-                        alt="Proof"
-                        className="w-full h-full object-contain"
-                      />
+                      <span className="text-zinc-500 text-xs">
+                        No issue photo
+                      </span>
                     )}
-                    <a
-                      href={ticket.proof_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      View Full
-                    </a>
                   </div>
-                )}
+
+                  {/* Staff Proof */}
+                  {ticket.proof_url && (
+                    <div className="rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                      <span className="absolute top-2 left-2 bg-emerald-500/80 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                        Staff Proof
+                      </span>
+                      {ticket.proof_url.match(
+                        /\.(mp4|webm|ogg|mov|avi|mkv)$/i
+                      ) ? (
+                        <video
+                          src={ticket.proof_url}
+                          className="w-full h-full object-contain"
+                          controls
+                        />
+                      ) : (
+                        <img
+                          src={ticket.proof_url}
+                          alt="Proof"
+                          className="w-full h-full object-contain"
+                        />
+                      )}
+                      <a
+                        href={ticket.proof_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        View Full
+                      </a>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
                   <div className="text-xs text-zinc-500">
@@ -490,7 +543,7 @@ const DeptDashboard = () => {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleReject(ticket.id)}
+                      onClick={() => setRejectTicketId(ticket.id)}
                       className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                       title="Reject Work"
                     >
@@ -596,6 +649,17 @@ const DeptDashboard = () => {
           </div>
         </div>
       )}
+      {/* Rejection Modal */}
+      <InputModal
+        isOpen={!!rejectTicketId}
+        onClose={() => setRejectTicketId(null)}
+        title="Reject Work"
+        message="Please provide a reason or instructions for the staff member."
+        placeholder="e.g. The photo is blurry, please retake."
+        confirmText="Reject Ticket"
+        onConfirm={handleReject}
+        isDanger
+      />
     </Layout>
   );
 };

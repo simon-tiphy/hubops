@@ -138,7 +138,7 @@ const StaffDashboard = () => {
   const myActiveTickets = tickets.filter(
     (t) =>
       t.assigned_staff_id === user.id &&
-      t.staff_status === "Accepted" &&
+      (t.staff_status === "Accepted" || t.staff_status === "Rejected") &&
       t.status !== "Resolved"
   );
 
@@ -192,6 +192,19 @@ const StaffDashboard = () => {
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
                   {ticket.description}
                 </p>
+
+                {ticket.photo_url && (
+                  <div className="mb-4 rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                    <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Original Issue
+                    </span>
+                    <img
+                      src={ticket.photo_url}
+                      alt="Issue"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
                   <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -257,6 +270,33 @@ const StaffDashboard = () => {
                 <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
                   {ticket.description}
                 </p>
+
+                {ticket.staff_status === "Rejected" && (
+                  <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl animate-pulse">
+                    <h4 className="text-red-400 text-sm font-bold mb-1 flex items-center gap-2">
+                      <X size={14} /> Work Rejected
+                    </h4>
+                    <p className="text-red-300 text-xs">
+                      "{ticket.rejection_message || "No reason provided."}"
+                    </p>
+                    <p className="text-red-400/50 text-[10px] mt-2 uppercase font-bold">
+                      Please redo work and submit again
+                    </p>
+                  </div>
+                )}
+
+                {ticket.photo_url && (
+                  <div className="mb-4 rounded-xl overflow-hidden border border-white/10 h-32 bg-black flex items-center justify-center relative group">
+                    <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm">
+                      Original Issue
+                    </span>
+                    <img
+                      src={ticket.photo_url}
+                      alt="Issue"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
 
                 {resolvingId === ticket.id ? (
                   <div className="bg-surface/50 p-4 rounded-xl border border-white/10 animate-scale-in">
