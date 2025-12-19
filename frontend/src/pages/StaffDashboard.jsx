@@ -272,14 +272,14 @@ const StaffDashboard = () => {
                 </p>
 
                 {ticket.staff_status === "Rejected" && (
-                  <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl animate-pulse">
+                  <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl animate-pulse">
                     <h4 className="text-red-400 text-sm font-bold mb-1 flex items-center gap-2">
                       <X size={14} /> Work Rejected
                     </h4>
-                    <p className="text-red-300 text-xs">
+                    <p className="text-red-200 text-xs">
                       "{ticket.rejection_message || "No reason provided."}"
                     </p>
-                    <p className="text-red-400/50 text-[10px] mt-2 uppercase font-bold">
+                    <p className="text-red-400 text-[10px] mt-2 uppercase font-bold">
                       Please redo work and submit again
                     </p>
                   </div>

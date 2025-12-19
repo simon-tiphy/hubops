@@ -178,7 +178,7 @@ const DeptDashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchTickets();
-      showToast("Work rejected", "success");
+      showToast("Work rejected", "error");
       setRejectTicketId(null);
     } catch (err) {
       console.error(err);
@@ -657,7 +657,7 @@ const DeptDashboard = () => {
         message="Please provide a reason or instructions for the staff member."
         placeholder="e.g. The photo is blurry, please retake."
         confirmText="Reject Ticket"
-        onConfirm={handleReject}
+        onSubmit={handleReject}
         isDanger
       />
     </Layout>
