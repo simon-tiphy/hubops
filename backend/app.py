@@ -6,6 +6,7 @@ from models import db, User, Ticket, Department, RecurringTask
 from datetime import datetime, timedelta
 import os
 import json
+import re
 
 from werkzeug.utils import secure_filename
 import time
@@ -290,6 +291,125 @@ class RecurringTaskItem(Resource):
         db.session.commit()
         return {'message': 'Task deleted'}, 200
 
+# --- HubAI Analyst (Simulated NLP) ---
+class HubAIQuery(Resource):
+    @jwt_required()
+    def post(self):
+        data = request.get_json()
+        query = data.get('query', '').lower()
+        
+        # Simulated "Thinking" Delay for effect handled in frontend or here? 
+        # Frontend is better for UI/UX, keeping backend fast.
+        
+        response_text = "I'm not sure I understand. Try asking about open tickets, specific ticket IDs (e.g., 'Ticket #10'), or search for issues."
+        analysis_data = {}
+        
+        # --- 1. Specific Ticket Lookup (Regex: "ticket #123" or "issue 45") ---
+        ticket_match = re.search(r'(?:ticket|issue)\s*#?(\d+)', query)
+        if ticket_match:
+            ticket_id = ticket_match.group(1)
+            ticket = Ticket.query.get(ticket_id)
+            if ticket:
+                response_text = (
+                    f"**Ticket #{ticket.id}** ({ticket.type})\n"
+                    f"**Status**: {ticket.status}\n"
+                    f"**Priority**: {ticket.priority}\n"
+                    f"**Reported By**: {ticket.tenant_name}\n"
+                    f"**Description**: \"{ticket.description}\""
+                )
+            else:
+                response_text = f"I could not find a ticket with ID **#{ticket_id}**."
+                
+        # --- 2. Search / Find (Regex: "search X" or "find X") ---
+        elif 'search' in query or 'find' in query:
+            # Extract search term: "search for leak" -> "leak"
+            search_term = re.sub(r'search|find|for|tickets|issues|about', '', query).strip()
+            if search_term:
+                results = Ticket.query.filter(
+                    (Ticket.description.ilike(f'%{search_term}%')) | 
+                    (Ticket.type.ilike(f'%{search_term}%'))
+                ).limit(5).all()
+                
+                if results:
+                    response_text = f"Found **{len(results)}** tickets matching '*{search_term}*':\n"
+                    for t in results:
+                        response_text += f"- **#{t.id}**: {t.type} ({t.status})\n"
+                else:
+                    response_text = f"No tickets found matching '*{search_term}*'."
+            else:
+                response_text = "What would you like me to search for? (e.g., 'Search for leak')"
+
+        # --- 3. Recent Activity ---
+        elif 'recent' in query or 'latest' in query or 'last' in query:
+            results = Ticket.query.order_by(Ticket.created_at.desc()).limit(3).all()
+            if results:
+                response_text = "**Most Recent Activity:**\n"
+                for t in results:
+                    response_text += f"- **#{t.id}** ({t.type}): {t.status} - *{t.description[:30]}...*\n"
+            else:
+                response_text = "No recent activity found."
+
+        # --- 4. Ticket Counts ---
+        elif 'how many' in query or 'count' in query:
+            if 'ticket' in query or 'issue' in query:
+                if 'open' in query or 'pending' in query:
+                    count = Ticket.query.filter(Ticket.status != 'Resolved').count()
+                    response_text = f"There are currently **{count} open tickets** requiring attention."
+                elif 'resolved' in query or 'closed' in query:
+                    count = Ticket.query.filter_by(status='Resolved').count()
+                    response_text = f"Great news! We have resolved **{count} tickets** so far."
+                else:
+                    count = Ticket.query.count()
+                    response_text = f"We have a total of **{count} tickets** recorded in the system."
+                    
+        # --- 5. Department Issues ---
+        elif 'department' in query or 'dept' in query:
+            if 'most' in query or 'worst' in query or 'busiest' in query:
+                # Find dept with most open tickets
+                departments = Department.query.all()
+                max_tickets = -1
+                busiest_dept = None
+                
+                for dept in departments:
+                    count = Ticket.query.filter_by(assigned_dept_id=dept.id).count()
+                    if count > max_tickets:
+                        max_tickets = count
+                        busiest_dept = dept.name
+                        
+                if busiest_dept:
+                    response_text = f"**{busiest_dept}** is currently the busiest department with **{max_tickets} tickets**."
+                else:
+                    response_text = "Analysis shows no active data for departments yet."
+                    
+        # --- 6. Satisfaction / Sentiment ---
+        elif 'happy' in query or 'satisfaction' in query or 'rating' in query:
+            avg_rating = db.session.query(db.func.avg(Ticket.feedback_rating)).scalar()
+            if avg_rating:
+                stars = round(avg_rating, 1)
+                response_text = f"The current tenant satisfaction score is **{stars} / 5.0**. "
+                if stars >= 4:
+                    response_text += "Keep up the great work! 🌟"
+                elif stars >= 3:
+                    response_text += "Room for improvement."
+                else:
+                    response_text += "Urgent attention recommended."
+            else:
+                response_text = "We don't have enough feedback data yet to calculate satisfaction."
+                
+        # --- 7. Status / Summary ---
+        elif 'summary' in query or 'status' in query or 'report' in query:
+             open_count = Ticket.query.filter(Ticket.status != 'Resolved').count()
+             resolved_count = Ticket.query.filter_by(status='Resolved').count()
+             response_text = f"**Executive Summary**:\n- Open Issues: {open_count}\n- Resolved: {resolved_count}\nSystem is operating normally."
+
+        # --- 8. Fun / Easter Eggs ---
+        elif 'hello' in query or 'hi' in query:
+            response_text = "Hello! I am HubAI, your operations assistant. Ask me about tickets, departments, or tenant satisfaction."
+        elif 'thank' in query:
+            response_text = "You're welcome! Let me know if you need anything else."
+            
+        return {'answer': response_text}, 200
+
 class SchedulerCheck(Resource):
     def post(self):
         # In a real app, this would be secured or run by a cron job internally
@@ -423,6 +543,7 @@ api.add_resource(TicketAction, '/tickets/<int:ticket_id>/action')
 api.add_resource(DashboardStats, '/dashboard/stats')
 api.add_resource(RecurringTaskList, '/recurring-tasks')
 api.add_resource(RecurringTaskItem, '/recurring-tasks/<int:task_id>')
+api.add_resource(HubAIQuery, '/ai/query')
 api.add_resource(SchedulerCheck, '/scheduler/check')
 api.add_resource(StaffList, '/departments/<int:dept_id>/staff')
 api.add_resource(UploadFile, '/upload')

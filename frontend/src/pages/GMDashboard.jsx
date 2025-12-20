@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import RecurringTasks from "../components/RecurringTasks";
+import HubAIWidget from "../components/HubAIWidget";
 
 const GMDashboard = () => {
   const { token } = useAuth();
@@ -536,6 +537,9 @@ const GMDashboard = () => {
           getStatusColor={getStatusColor}
         />
       )}
+
+      {/* HubAI Analyst Widget */}
+      <HubAIWidget />
     </Layout>
   );
 };
