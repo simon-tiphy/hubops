@@ -44,10 +44,10 @@ const Login = () => {
             <Building2 className="text-white w-6 h-6" />
           </div>
           <h1 className="text-4xl font-bold text-white tracking-tight mb-2">
-            HubOps
+            The Hub Operations
           </h1>
           <p className="text-zinc-400 text-sm font-medium">
-            Enterprise Facility Management
+            Customer relationship management system (CRM)
           </p>
         </div>
 

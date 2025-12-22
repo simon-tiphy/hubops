@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1280" height="360" viewBox="0 0 1280 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Simon Tiphy Software Engineer banner">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#0b2a5a"/>
+      <stop offset="1" stop-color="#09111a"/>
+    </linearGradient>
+
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style type="text/css"><![CDATA[
+      .title { font: 700 48px 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #FFFFFF; letter-spacing: -0.6px; }
+      .subtitle { font: 400 20px 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #9fb2d8; }
+      .meta { font: 400 14px 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #9aaec9; }
+      .chip { font: 600 12px 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #061225; }
+      .chip-bg { rx: 10; ry: 10; fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.03); }
+      .bullet { font: 600 13px 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #9fb2d8; }
+    ]]></style>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="360" fill="url(#bg)"/>
+
+  <!-- subtle grid pattern (very light) -->
+  <g opacity="0.04">
+    <pattern id="p" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 L0 0 0 40" fill="none" stroke="#ffffff" stroke-width="0.5" stroke-opacity="0.02"/>
+    </pattern>
+    <rect width="1280" height="360" fill="url(#p)"/>
+  </g>
+
+  <!-- code icon -->
+  <g transform="translate(80,70)">
+    <rect x="0" y="0" width="220" height="220" rx="18" ry="18" fill="#071829" opacity="0.6"/>
+    <g transform="translate(26,40)" filter="url(#glow)">
+      <path d="M28 60 L52 36 M52 36 L28 12" stroke="#47c0ff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M96 12 L120 36 M120 36 L96 60" stroke="#7af5a5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="76" cy="36" r="6" fill="#ffffff" opacity="0.06"/>
+    </g>
+  </g>
+
+  <!-- Name & Title -->
+  <g transform="translate(340,110)">
+    <text class="title">Simon Tiphy</text>
+    <text class="subtitle" transform="translate(0,42)">Software Engineer — Frontend & Backend</text>
+
+    <!-- small chips (stack highlights) -->
+    <g transform="translate(0,84)" >
+      <rect class="chip-bg" x="0" y="0" width="112" height="30"/>
+      <text class="chip" transform="translate(14,20)">React • Next.js</text>
+
+      <rect class="chip-bg" x="140" y="0" width="120" height="30"/>
+      <text class="chip" transform="translate(154,20)">Flask • Python</text>
+
+      <rect class="chip-bg" x="300" y="0" width="110" height="30"/>
+      <text class="chip" transform="translate(314,20)">TypeScript</text>
+    </g>
+  </g>
+
+  <!-- Quick bullets on the right -->
+  <g transform="translate(340,200)">
+    <text class="meta" transform="translate(0,0)">🔭 Building reliable full-stack web apps & APIs</text>
+    <text class="meta" transform="translate(0,26)">🌱 Focus: scalable frontends, API design, clean architecture</text>
+    <text class="meta" transform="translate(0,52)">⚡ Fun: low-power mode > sleep 😄</text>
+  </g>
+
+  <!-- subtle bottom strip with small icons (optional) -->
+  <g transform="translate(0,320)" opacity="0.08">
+    <rect x="0" y="0" width="1280" height="40" fill="#ffffff"/>
+  </g>
+
+  <!-- accessibility title for markdown fallback -->
+  <title>Simon Tiphy — Software Engineer</title>
+</svg>
