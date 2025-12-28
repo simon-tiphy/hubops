@@ -15,6 +15,7 @@ import {
   Video,
 } from "lucide-react";
 import { clsx } from "clsx";
+import CustomSelect from "../components/CustomSelect";
 
 const TenantDashboard = () => {
   const { token } = useAuth();
@@ -152,19 +153,18 @@ const TenantDashboard = () => {
                   <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wide">
                     Issue Type
                   </label>
-                  <select
-                    className="input-field bg-surface/80"
+                  <CustomSelect
                     value={formData.type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, type: e.target.value })
-                    }
-                  >
-                    <option>Maintenance</option>
-                    <option>Security</option>
-                    <option>Housekeeping</option>
-                    <option>IT</option>
-                    <option>Other</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, type: val })}
+                    options={[
+                      "Maintenance",
+                      "Security",
+                      "Housekeeping",
+                      "IT",
+                      "Other",
+                    ]}
+                    className="w-full"
+                  />
                 </div>
 
                 <div>

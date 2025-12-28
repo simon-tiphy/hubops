@@ -35,6 +35,7 @@ import {
 import { clsx } from "clsx";
 import RecurringTasks from "../components/RecurringTasks";
 import HubAIWidget from "../components/HubAIWidget";
+import CustomSelect from "../components/CustomSelect";
 
 const GMDashboard = () => {
   const { token } = useAuth();
@@ -283,7 +284,7 @@ const GMDashboard = () => {
                 filteredTickets.map((ticket) => (
                   <div
                     key={ticket.id}
-                    className="group bg-surface/30 hover:bg-surface/60 border border-white/5 p-4 rounded-xl transition-all flex flex-col gap-4 animate-fade-in"
+                    className="group bg-surface/30 hover:bg-surface/60 border border-white/5 p-4 rounded-xl transition-all flex flex-col gap-4 animate-fade-in relative hover:z-20"
                   >
                     <div className="flex items-start gap-4">
                       {/* Image Preview - Always show original issue */}
@@ -353,8 +354,7 @@ const GMDashboard = () => {
                         <span className="text-xs text-zinc-400">
                           Assigned to:
                         </span>
-                        <select
-                          className="bg-transparent border-none text-xs font-medium text-primary focus:ring-0 p-0 cursor-pointer"
+                        <CustomSelect
                           value={
                             ticket.assigned_dept_id
                               ? [
@@ -362,21 +362,21 @@ const GMDashboard = () => {
                                   "Security",
                                   "Housekeeping",
                                   "IT",
-                                ][ticket.assigned_dept_id - 1] // Hacky mapping for demo
+                                ][ticket.assigned_dept_id - 1]
                               : ""
                           }
-                          onChange={(e) =>
-                            handleAssign(ticket.id, e.target.value)
-                          }
-                        >
-                          <option value="" disabled>
-                            Select Dept
-                          </option>
-                          <option value="Maintenance">Maintenance</option>
-                          <option value="Security">Security</option>
-                          <option value="Housekeeping">Housekeeping</option>
-                          <option value="IT">IT</option>
-                        </select>
+                          onChange={(val) => handleAssign(ticket.id, val)}
+                          options={[
+                            "Maintenance",
+                            "Security",
+                            "Housekeeping",
+                            "IT",
+                          ]}
+                          placeholder="Assign"
+                          className="w-[140px]"
+                          buttonClassName="bg-[#1c2541] border border-white/10 hover:bg-[#2b3655] text-white"
+                          optionsClassName="bg-[#1c2541] border-white/10 shadow-xl"
+                        />
                       </div>
                       <button
                         onClick={() => setSelectedTicket(ticket)}
