@@ -162,8 +162,8 @@ class TicketAction(Resource):
             if current_user['role'] != 'dept':
                 return {'message': 'Unauthorized'}, 403
             ticket.proof_url = data.get('proof_url')
-            ticket.status = 'Resolved'
-            ticket.resolved_at = datetime.utcnow()
+            ticket.status = 'Pending GM Review'
+            # ticket.resolved_at = datetime.utcnow() # Moved to GM approval
         
         elif action == 'assign_staff':
             staff_id = data.get('staff_id')
@@ -186,8 +186,8 @@ class TicketAction(Resource):
         elif action == 'dept_approve_work':
             if current_user['role'] != 'dept':
                 return {'message': 'Unauthorized'}, 403
-            ticket.status = 'Resolved'
-            ticket.resolved_at = datetime.utcnow()
+            ticket.status = 'Pending GM Review'
+            # ticket.resolved_at = datetime.utcnow() # Moved to GM approval
 
         elif action == 'dept_reject_work':
             if current_user['role'] != 'dept':
@@ -211,6 +211,19 @@ class TicketAction(Resource):
             ticket.description = f"{ticket.description}\n\n[REJECTED]: {reason}"
             # Reset assignment so it can be re-assigned
             ticket.assigned_dept_id = None
+
+        elif action == 'gm_approve_work':
+            if current_user['role'] != 'gm':
+                return {'message': 'Unauthorized'}, 403
+            ticket.status = 'Resolved'
+            ticket.resolved_at = datetime.utcnow()
+            
+        elif action == 'gm_reject_work':
+            if current_user['role'] != 'gm':
+                return {'message': 'Unauthorized'}, 403
+            # Send back to Dept Head (Pending QA)
+            ticket.status = 'Pending QA'
+            ticket.rejection_message = f"[GM]: {data.get('rejection_message', 'No reason provided')}"
 
         else:
             return {'message': 'Invalid action'}, 400

@@ -43,10 +43,12 @@ const GMDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All"); // All, Pending, Active, Resolved, Rejected
+  const [filterStatus, setFilterStatus] = useState("All"); // All, Pending, Pending Review, Active, Resolved, Rejected
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectTicketId, setRejectTicketId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -81,10 +83,33 @@ const GMDashboard = () => {
       fetchData();
     } catch (err) {
       console.error(err);
+      console.error(err);
+    }
+  };
+
+  const handleGMAction = async (ticketId, action, reason) => {
+    try {
+      await axios.put(
+        `http://localhost:5000/tickets/${ticketId}/action`,
+        {
+          action: action === "approve" ? "gm_approve_work" : "gm_reject_work",
+          rejection_message: reason || rejectReason,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setRejectTicketId(null);
+      setRejectReason("");
+      fetchData();
+    } catch (err) {
+      console.error(err);
     }
   };
 
   const pendingTickets = tickets.filter((t) => t.status === "Pending Approval");
+  const pendingReviewTickets = tickets.filter(
+    (t) => t.status === "Pending GM Review"
+  );
+
   const COLORS = ["#10b981", "#64748b", "#ef4444"];
 
   const filteredTickets = tickets.filter((t) => {
@@ -94,6 +119,8 @@ const GMDashboard = () => {
     if (!matchesSearch) return false;
 
     if (filterStatus === "Pending") return t.status === "Pending Approval";
+    if (filterStatus === "Pending Review")
+      return t.status === "Pending GM Review";
     if (filterStatus === "Active")
       return (
         t.status === "In Progress" ||
@@ -109,6 +136,8 @@ const GMDashboard = () => {
     switch (status) {
       case "Pending Approval":
         return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+      case "Pending GM Review":
+        return "bg-purple-500/10 text-purple-400 border-purple-500/20";
       case "Assigned":
         return "bg-blue-500/10 text-blue-400 border-blue-500/20";
       case "In Progress":
@@ -349,41 +378,61 @@ const GMDashboard = () => {
 
                     {/* Action Bar */}
                     <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                      <div className="flex items-center gap-2">
-                        <Users size={14} className="text-zinc-500" />
-                        <span className="text-xs text-zinc-400">
-                          Assigned to:
-                        </span>
-                        <CustomSelect
-                          value={
-                            ticket.assigned_dept_id
-                              ? [
-                                  "Maintenance",
-                                  "Security",
-                                  "Housekeeping",
-                                  "IT",
-                                ][ticket.assigned_dept_id - 1]
-                              : ""
-                          }
-                          onChange={(val) => handleAssign(ticket.id, val)}
-                          options={[
-                            "Maintenance",
-                            "Security",
-                            "Housekeeping",
-                            "IT",
-                          ]}
-                          placeholder="Assign"
-                          className="w-[140px]"
-                          buttonClassName="bg-[#1c2541] border border-white/10 hover:bg-[#2b3655] text-white"
-                          optionsClassName="bg-[#1c2541] border-white/10 shadow-xl"
-                        />
-                      </div>
-                      <button
-                        onClick={() => setSelectedTicket(ticket)}
-                        className="text-xs text-zinc-400 hover:text-white transition-colors"
-                      >
-                        View Details
-                      </button>
+                      {ticket.status === "Pending GM Review" ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <button
+                            onClick={() => handleGMAction(ticket.id, "approve")}
+                            className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs py-1.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                          >
+                            <CheckCircle size={14} /> Approve
+                          </button>
+                          <button
+                            onClick={() => setRejectTicketId(ticket.id)}
+                            className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs py-1.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                          >
+                            <X size={14} /> Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Users size={14} className="text-zinc-500" />
+                          <span className="text-xs text-zinc-400">
+                            Assigned to:
+                          </span>
+                          <CustomSelect
+                            value={
+                              ticket.assigned_dept_id
+                                ? [
+                                    "Maintenance",
+                                    "Security",
+                                    "Housekeeping",
+                                    "IT",
+                                  ][ticket.assigned_dept_id - 1]
+                                : ""
+                            }
+                            onChange={(val) => handleAssign(ticket.id, val)}
+                            options={[
+                              "Maintenance",
+                              "Security",
+                              "Housekeeping",
+                              "IT",
+                            ]}
+                            placeholder="Assign"
+                            className="w-[140px]"
+                            buttonClassName="bg-[#1c2541] border border-white/10 hover:bg-[#2b3655] text-white"
+                            optionsClassName="bg-[#1c2541] border-white/10 shadow-xl"
+                          />
+                        </div>
+                      )}
+
+                      {ticket.status !== "Pending GM Review" && (
+                        <button
+                          onClick={() => setSelectedTicket(ticket)}
+                          className="text-xs text-zinc-400 hover:text-white transition-colors"
+                        >
+                          View Details
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -540,6 +589,43 @@ const GMDashboard = () => {
 
       {/* HubAI Analyst Widget */}
       <HubAIWidget />
+
+      {/* Reject Modal */}
+      {rejectTicketId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-sm p-6 relative animate-scale-in">
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Reject Work
+            </h3>
+            <p className="text-zinc-400 text-xs mb-4">
+              Provide a reason for rejection (sent to Department Head).
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full bg-surface/50 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-primary/50 min-h-[100px] mb-4"
+              placeholder="Reason..."
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setRejectTicketId(null);
+                  setRejectReason("");
+                }}
+                className="px-4 py-2 rounded-lg text-zinc-400 hover:text-white text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleGMAction(rejectTicketId, "reject")}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

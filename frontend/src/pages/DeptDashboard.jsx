@@ -193,6 +193,9 @@ const DeptDashboard = () => {
     (t) => t.status === "In Progress" && t.staff_status !== "Rejected"
   );
   const pendingQATickets = tickets.filter((t) => t.status === "Pending QA");
+  const pendingGMTickets = tickets.filter(
+    (t) => t.status === "Pending GM Review"
+  );
   const rejectedTickets = tickets.filter((t) => t.staff_status === "Rejected");
 
   if (loading)
@@ -566,6 +569,47 @@ const DeptDashboard = () => {
               </div>
             ))
           )}
+
+          {/* Pending GM Review Section */}
+          <div className="pt-6 border-t border-white/5 mt-6">
+            <h3 className="text-sm font-semibold text-zinc-400 mb-4 flex items-center gap-2">
+              Waiting for GM Approval
+              <span className="bg-purple-500/10 text-purple-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-500/20">
+                {pendingGMTickets.length}
+              </span>
+            </h3>
+
+            {pendingGMTickets.length === 0 ? (
+              <p className="text-zinc-600 text-xs italic">
+                No tickets waiting for GM.
+              </p>
+            ) : (
+              pendingGMTickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  className="glass-card p-4 border-l-4 border-l-purple-500/50 opacity-75 hover:opacity-100 transition-opacity mb-3"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[10px] font-bold text-purple-400/80 uppercase tracking-wider block">
+                      Pending GM
+                    </span>
+                    <span className="text-xs text-zinc-500 font-mono">
+                      #{ticket.id}
+                    </span>
+                  </div>
+                  <p className="text-zinc-400 text-sm mb-2 line-clamp-1">
+                    {ticket.description}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={12} className="text-emerald-500/50" />
+                    <span className="text-[10px] text-zinc-500">
+                      Approved by you
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Rejected / Sent Back Column */}
