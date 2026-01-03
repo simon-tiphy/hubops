@@ -425,14 +425,12 @@ const GMDashboard = () => {
                         </div>
                       )}
 
-                      {ticket.status !== "Pending GM Review" && (
-                        <button
-                          onClick={() => setSelectedTicket(ticket)}
-                          className="text-xs text-zinc-400 hover:text-white transition-colors"
-                        >
-                          View Details
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setSelectedTicket(ticket)}
+                        className="text-xs text-zinc-400 hover:text-white transition-colors"
+                      >
+                        Review Details
+                      </button>
                     </div>
                   </div>
                 ))
@@ -584,6 +582,11 @@ const GMDashboard = () => {
           ticket={selectedTicket}
           onClose={() => setSelectedTicket(null)}
           getStatusColor={getStatusColor}
+          onApprove={() => handleGMAction(selectedTicket.id, "approve")}
+          onReject={() => {
+            setRejectTicketId(selectedTicket.id);
+            setSelectedTicket(null); // Close details modal when rejecting to show reason modal
+          }}
         />
       )}
 
@@ -665,7 +668,13 @@ const KPICard = ({ title, value, change, color, onClick, active }) => (
   </div>
 );
 
-const TicketDetailsModal = ({ ticket, onClose, getStatusColor }) => {
+const TicketDetailsModal = ({
+  ticket,
+  onClose,
+  getStatusColor,
+  onApprove,
+  onReject,
+}) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-[#161e33] border border-white/10 rounded-2xl w-full max-w-2xl p-0 relative animate-scale-in overflow-hidden flex flex-col max-h-[90vh]">
@@ -816,10 +825,27 @@ const TicketDetailsModal = ({ ticket, onClose, getStatusColor }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-white/5 bg-[#0F1526]/50 flex justify-end">
-          <button onClick={onClose} className="btn-primary">
-            Close
-          </button>
+        <div className="p-6 border-t border-white/5 bg-[#0F1526]/50 flex justify-end gap-3">
+          {ticket.status === "Pending GM Review" ? (
+            <>
+              <button
+                onClick={onReject}
+                className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <X size={16} /> Reject work
+              </button>
+              <button
+                onClick={onApprove}
+                className="btn-primary text-sm px-6 py-2 flex items-center gap-2"
+              >
+                <CheckCircle size={16} /> Approve Work
+              </button>
+            </>
+          ) : (
+            <button onClick={onClose} className="btn-primary">
+              Close
+            </button>
+          )}
         </div>
       </div>
     </div>
